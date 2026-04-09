@@ -3,11 +3,35 @@ Casa Wawa OS — Servidor Backend
 Flask + Socket.IO + almacenamiento en memoria (seed desde JSON)
 Compatible con Railway, Render y cualquier plataforma PaaS.
 """
-import json, os, threading
+import json, os, threading, requests as req_lib
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
+
+# ─── Configuración de Telegram ────────────────────────────────────────────────
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "8686503680:AAFLLAnoePMLniCYxc_kliSQf81bo_lLH40")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "8190295136")
+
+def _send_telegram(message, parse_mode="HTML"):
+    """Envía un mensaje al bot de Telegram de Karim."""
+    if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+        return False, "Token o chat_id no configurado"
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        payload = {
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": message,
+            "parse_mode": parse_mode
+        }
+        r = req_lib.post(url, json=payload, timeout=10)
+        data = r.json()
+        if data.get("ok"):
+            return True, "Enviado"
+        else:
+            return False, data.get("description", "Error desconocido")
+    except Exception as e:
+        return False, str(e)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(BASE_DIR, "data", "seed.json")
@@ -111,7 +135,26 @@ def set_data(key):
 
 @app.route("/api/notify", methods=["POST"])
 def notify():
-    return jsonify({"ok": True, "msg": "Notificación recibida"})
+    data = request.get_json(force=True, silent=True) or {}
+    message = data.get("message", "").strip()
+    parse_mode = data.get("parse_mode", "HTML")
+    if not message:
+        return jsonify({"ok": False, "error": "Mensaje vacío"}), 400
+    ok, detail = _send_telegram(message, parse_mode)
+    if ok:
+        print(f"[Telegram] ✅ Enviado: {message[:60]}...")
+        return jsonify({"ok": True, "msg": "Enviado a Karim"})
+    else:
+        print(f"[Telegram] ❌ Error: {detail}")
+        return jsonify({"ok": False, "error": detail}), 500
+
+@app.route("/api/notify/test", methods=["GET"])
+def notify_test():
+    ok, detail = _send_telegram(
+        "👋 <b>Casa Wawa OS</b>\n\nConexión con Telegram verificada correctamente.\n✅ El bot está activo y listo.",
+        "HTML"
+    )
+    return jsonify({"ok": ok, "detail": detail})
 
 @app.route("/api/reporte-cierre", methods=["POST"])
 def reporte_cierre():
@@ -122,11 +165,13 @@ def reporte_cierre():
     comensales = sum(int(v.get("comensales", 0)) for v in ventas_hoy)
     ticket = f"${total/comensales:.0f}" if comensales else "—"
     reporte = (
-        f"📊 REPORTE DE CIERRE — {hoy}\n"
-        f"Ventas: ${total:,.0f}\n"
-        f"Comensales: {comensales}\n"
-        f"Ticket Prom: {ticket}"
+        f"📊 <b>REPORTE DE CIERRE</b> — {hoy}\n\n"
+        f"💰 Ventas: <b>${total:,.0f}</b>\n"
+        f"👥 Comensales: {comensales}\n"
+        f"🎫 Ticket Prom: {ticket}"
     )
+    # Enviar por Telegram
+    threading.Thread(target=_send_telegram, args=(reporte, "HTML"), daemon=True).start()
     return jsonify({"ok": True, "reporte": reporte})
 
 @app.route("/api/nomina")
