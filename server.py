@@ -316,9 +316,112 @@ def on_data_sync(data):
         "ts": int(datetime.now().timestamp() * 1000)
     }, namespace="/sync", skip_sid=request.sid)
 
-# ─── Arranque ─────────────────────────────────────────────────────────────────
-_load_seed()
+# ─── Sincronización con Wawa Calendar ────────────────────────────────────
+WAWA_CALENDAR_URL = os.environ.get("WAWA_CALENDAR_URL", "https://wawacalend-sfzuhfo8.manus.space")
 
+def _fetch_wawa_calendar_events():
+    """Extrae eventos del Wawa Calendar via scraping del bundle JS."""
+    try:
+        import re
+        # Obtener el HTML para encontrar el bundle JS
+        r = req_lib.get(WAWA_CALENDAR_URL, timeout=15)
+        js_match = re.search(r'src="(/assets/index-[^"]+\.js)"', r.text)
+        if not js_match:
+            return None, "No se encontró el bundle JS"
+        js_url = WAWA_CALENDAR_URL + js_match.group(1)
+        rjs = req_lib.get(js_url, timeout=30)
+        content = rjs.text
+
+        tipo_map = {
+            'actividad': 'actividad', 'show': 'show', 'taller': 'taller',
+            'fiesta': 'fiesta', 'especial': 'actividad', 'clase': 'taller',
+        }
+
+        eventos = []
+        seen_ids = set()
+
+        def add_ev(id_, nombre, tipo, fecha, h_ini, h_fin, estado, desc='', edad='', semana='', precio=0, cap=0):
+            if id_ in seen_ids:
+                return
+            seen_ids.add(id_)
+            notas_parts = []
+            if semana: notas_parts.append(f"Semana: {semana}")
+            if edad: notas_parts.append(f"Edad: {edad}")
+            if precio: notas_parts.append(f"Precio: ${precio}/niño")
+            if cap: notas_parts.append(f"Capacidad: {cap} personas")
+            eventos.append({
+                'id': id_, 'nombre': nombre,
+                'categoria': tipo_map.get(tipo, 'actividad'),
+                'fecha': fecha,
+                'hora': h_ini or '11:00',
+                'horaFin': h_fin or '20:00',
+                'descripcion': desc or '',
+                'asistencia': int(cap) if cap else 0,
+                'responsable': 'Casa Wawa',
+                'notas': ' | '.join(notas_parts),
+                'estado': estado or 'confirmado',
+                'ts': int(datetime.now().timestamp() * 1000),
+                'origen': 'wawa-calendar'
+            })
+
+        # Patrón para eventos con comillas dobles
+        p_dq = re.compile(
+            r'\{id:"([^"]+)",nombre:"([^"]+)",tipo:"([^"]+)",fecha:"([^"]+)",horarioInicio:"([^"]*)",horarioFin:"([^"]*)"(?:,precioNino:(\d+))?(?:,capacidadMaxima:(\d+))?[^}]*?estado:"([^"]*)"(?:[^}]*?descripcion:"([^"]*)")?(?:[^}]*?edadRecomendada:"([^"]*)")?(?:[^}]*?semana:"([^"]*)")?' 
+        )
+        for m in p_dq.finditer(content):
+            add_ev(m.group(1), m.group(2), m.group(3), m.group(4), m.group(5), m.group(6),
+                   m.group(8), m.group(9) or '', m.group(10) or '', m.group(11) or '',
+                   m.group(7) or 0, 0)
+
+        # Patrón para shows con comillas simples en nombre
+        p_show = re.compile(
+            r'\{id:"(may-\d+-show[^"]*)",nombre:\'([^\']+)\',tipo:"show",fecha:"([^"]+)",horarioInicio:"([^"]*)",horarioFin:"([^"]*)"[^}]*?estado:"([^"]*)"(?:[^}]*?descripcion:"([^"]*)")?(?:[^}]*?edadRecomendada:"([^"]*)")?'
+        )
+        for m in p_show.finditer(content):
+            add_ev(m.group(1), m.group(2), 'show', m.group(3), m.group(4), m.group(5),
+                   m.group(6), m.group(7) or '', m.group(8) or '', '', 0, 0)
+
+        eventos.sort(key=lambda x: (x['fecha'], x['hora']))
+        return eventos, f"{len(eventos)} eventos extraídos"
+    except Exception as e:
+        return None, str(e)
+
+@app.route("/api/sync-wawa-calendar", methods=["POST", "GET"])
+def sync_wawa_calendar():
+    """Sincroniza eventos del Wawa Calendar con Casa Wawa OS."""
+    eventos, msg = _fetch_wawa_calendar_events()
+    if eventos is None:
+        return jsonify({"ok": False, "error": msg}), 500
+
+    with _lock:
+        # Obtener eventos existentes que NO vienen del wawa-calendar (creados manualmente)
+        existing = _store.get("eventos") or []
+        manual = [e for e in existing if e.get("origen") != "wawa-calendar"]
+        # Combinar: manuales primero + todos los del calendar
+        merged = manual + eventos
+        _store["eventos"] = merged
+
+    threading.Thread(target=_save_data, daemon=True).start()
+
+    # Emitir por WebSocket a todos los dispositivos
+    socketio.emit("data_update", {
+        "key": "eventos",
+        "value": _store["eventos"],
+        "source": "wawa-calendar-sync",
+        "ts": int(datetime.now().timestamp() * 1000)
+    }, namespace="/sync")
+
+    print(f"[WawaCalendar] ✅ Sincronizados {len(eventos)} eventos ({len(manual)} manuales conservados)")
+    return jsonify({
+        "ok": True,
+        "total": len(_store["eventos"]),
+        "calendar": len(eventos),
+        "manual": len(manual),
+        "msg": msg
+    })
+
+# ─── Arranque ─────────────────────────────────────────────────────
+_load_seed()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5555))
     print(f"[CasaWawa] Servidor en puerto {port}...")
