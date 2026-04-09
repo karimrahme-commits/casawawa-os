@@ -185,10 +185,8 @@
         // Render con debounce
         _debouncedRender(key);
 
-        // Visual feedback
-        if (typeof toast === "function") {
-          toast(`🔄 ${_keyLabel(key)} sincronizado`);
-        }
+        // Visual feedback silenciado — solo log en consola
+        console.log(`[Sync] 🔄 ${_keyLabel(key)} sincronizado`);
       });
 
       // Recibir sync completo (primera conexión)
@@ -245,9 +243,8 @@
           console.log(`[Sync] ✅ Full sync: ${updated} keys actualizadas`);
           // Re-render todo
           _renderAll();
-          if (typeof toast === "function") {
-            toast(`✅ Sincronizado (${updated} datos)`);
-          }
+          // Toast silenciado — solo log en consola
+          console.log(`[Sync] ✅ Sincronizado (${updated} datos)`);
         } else {
           console.log("[Sync] ✅ Full sync: todo al día");
         }
