@@ -9,7 +9,8 @@
 
 (function () {
   // Si se sirve desde el mismo server, usar origin; si no, fallback a localhost:5555
-  const API = (window.location.port === "5555") ? "" : "http://localhost:5555";
+  // En Railway y otros hostings, el frontend y backend corren en el mismo origen
+  const API = (window.location.port === "5555" || window.location.port === "8080" || window.location.port === "" || window.location.port === "443") ? "" : "http://localhost:5555";
   let bridgeActivo = false;
 
   // ─── Verificar conexión con el servidor ─────────────────────────────────
@@ -55,7 +56,7 @@
       "ventas", "costos", "alertas", "tareas", "empleados", "turnos",
       "logE", "metas", "reportes", "historial", "pendientes", "clItems",
       "inventario", "invCats", "ordenes", "proveedores", "recetas",
-      "mermas", "mesas", "reservas"
+      "mermas", "mesas", "reservas", "eventos"
     ];
     CLAVES.forEach((k) => {
       const raw = localStorage.getItem("cw_" + k);

@@ -27,6 +27,7 @@
     "users", "reportes", "historial", "preciosEntrada", "invCats",
     "checadas", "equiposTemp", "registrosTemp",
     "customRoles", "rolePins",
+    "eventos",
   ];
 
   // Mapa: key → funciones render a llamar cuando llega un cambio remoto
@@ -63,6 +64,7 @@
     registrosTemp:   ["renderHACCP"],
     customRoles:     ["renderAdmin", "renderLoginRoles"],
     rolePins:        ["renderAdmin"],
+    eventos:         ["renderEventos"],
   };
 
   // ═══════════════════════════════════════════════════════════════════════════

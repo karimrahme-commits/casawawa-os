@@ -1,0 +1,321 @@
+<!-- ===== EVENTOS (CALENDARIO DE ACTIVIDADES) ===== -->
+<div class="pg" id="pg-eventos">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button class="btn bs sm" onclick="evMes(-1)">← Anterior</button>
+      <button class="btn bs sm" onclick="evMes(1)">Siguiente →</button>
+      <button class="btn bs sm" onclick="evHoy()">Hoy</button>
+      <span id="evMesLbl" style="font-size:13px;font-weight:600;color:var(--gd);padding:0 10px;"></span>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <button class="btn bg" onclick="om('mEvento')">+ Nuevo Evento</button>
+    </div>
+  </div>
+
+  <!-- KPIs del mes -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;">
+    <div class="kpi"><div class="kl">Eventos este mes</div><div class="kv" id="evTotal" style="color:var(--gd)">0</div><div class="kf">Programados</div></div>
+    <div class="kpi"><div class="kl">Fiestas</div><div class="kv" id="evFiestas" style="color:var(--gn)">0</div><div class="kf">🎉</div></div>
+    <div class="kpi"><div class="kl">Shows</div><div class="kv" id="evShows" style="color:var(--bl)">0</div><div class="kf">🎭</div></div>
+    <div class="kpi"><div class="kl">Talleres</div><div class="kv" id="evTalleres" style="color:var(--yl)">0</div><div class="kf">🎨</div></div>
+  </div>
+
+  <!-- Calendario mensual -->
+  <div class="card" style="margin-bottom:12px;">
+    <div class="ch"><div><div class="ctt">📅 Calendario del Mes</div></div></div>
+    <div class="cb" style="overflow-x:auto;">
+      <div id="evCalendario" style="min-width:700px;"></div>
+    </div>
+  </div>
+
+  <!-- Lista de eventos -->
+  <div class="g2">
+    <div class="card">
+      <div class="ch">
+        <div><div class="ctt">Próximos Eventos</div></div>
+        <select class="fi" id="evFiltro" style="width:140px;" onchange="renderEventos()">
+          <option value="todos">Todos</option>
+          <option value="fiesta">🎉 Fiestas</option>
+          <option value="show">🎭 Shows</option>
+          <option value="taller">🎨 Talleres</option>
+          <option value="actividad">🎪 Actividades</option>
+        </select>
+      </div>
+      <div style="max-height:420px;overflow-y:auto;" id="evLista">
+        <div class="es"><div class="ei">🎉</div><div class="et">Sin eventos programados</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><div><div class="ctt">Métricas</div></div></div>
+      <div class="cb">
+        <div style="margin-bottom:12px;">
+          <div style="font-size:10px;color:var(--tx3);margin-bottom:6px;">ASISTENCIA PROMEDIO</div>
+          <div style="font-family:Syne,sans-serif;font-size:28px;font-weight:700;color:var(--gd);" id="evAsistProm">—</div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="font-size:10px;color:var(--tx3);margin-bottom:6px;">EVENTOS POR CATEGORÍA</div>
+          <div id="evCatChart" style="height:180px;"></div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--tx3);margin-bottom:6px;">PRÓXIMO EVENTO</div>
+          <div id="evProximo" style="font-size:12px;color:var(--tx2);">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Nuevo Evento -->
+<div class="mo" id="mEvento"><div class="mw wide"><div class="mt" id="mEventoTtl">Nuevo Evento</div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Nombre del evento</label><input class="fi" type="text" id="evNom" placeholder="Ej: Fiesta de Halloween"></div>
+    <div class="fg"><label class="fl">Categoría</label><select class="fi" id="evCat">
+      <option value="fiesta">🎉 Fiesta</option>
+      <option value="show">🎭 Show</option>
+      <option value="taller">🎨 Taller</option>
+      <option value="actividad">🎪 Actividad</option>
+    </select></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Fecha</label><input class="fi" type="date" id="evFecha"></div>
+    <div class="fg"><label class="fl">Hora</label><input class="fi" type="time" id="evHora"></div>
+  </div>
+  <div class="fg"><label class="fl">Descripción</label><textarea class="fi fta" id="evDesc" placeholder="Detalles del evento..."></textarea></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Asistencia esperada</label><input class="fi" type="number" id="evAsist" placeholder="50"></div>
+    <div class="fg"><label class="fl">Responsable</label><input class="fi" type="text" id="evResp" placeholder="Nombre del coordinador"></div>
+  </div>
+  <div class="fg"><label class="fl">Notas internas</label><input class="fi" type="text" id="evNotas" placeholder="Preparativos, materiales..."></div>
+  <input type="hidden" id="evEditId">
+  <div class="mf"><button class="btn bs" onclick="cm('mEvento')">Cancelar</button><button class="btn bg" onclick="gEvento()">Guardar Evento</button></div>
+</div></div>
+
+<script>
+// ════════ EVENTOS MODULE ════════
+let evCurrentMonth = new Date().getMonth();
+let evCurrentYear = new Date().getFullYear();
+
+function evMes(delta) {
+  evCurrentMonth += delta;
+  if (evCurrentMonth < 0) { evCurrentMonth = 11; evCurrentYear--; }
+  if (evCurrentMonth > 11) { evCurrentMonth = 0; evCurrentYear++; }
+  renderEventos();
+}
+
+function evHoy() {
+  evCurrentMonth = new Date().getMonth();
+  evCurrentYear = new Date().getFullYear();
+  renderEventos();
+}
+
+function renderEventos() {
+  const eventos = S.get('eventos', []);
+  const filtro = document.getElementById('evFiltro')?.value || 'todos';
+  
+  // Actualizar label del mes
+  const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const lbl = document.getElementById('evMesLbl');
+  if (lbl) lbl.textContent = `${meses[evCurrentMonth]} ${evCurrentYear}`;
+
+  // Filtrar eventos del mes actual
+  const eventosMes = eventos.filter(e => {
+    const d = new Date(e.fecha);
+    return d.getMonth() === evCurrentMonth && d.getFullYear() === evCurrentYear;
+  });
+
+  // KPIs
+  document.getElementById('evTotal').textContent = eventosMes.length;
+  document.getElementById('evFiestas').textContent = eventosMes.filter(e => e.categoria === 'fiesta').length;
+  document.getElementById('evShows').textContent = eventosMes.filter(e => e.categoria === 'show').length;
+  document.getElementById('evTalleres').textContent = eventosMes.filter(e => e.categoria === 'taller').length;
+
+  // Calendario mensual
+  renderCalendarioMensual(eventosMes);
+
+  // Lista de eventos
+  let eventosFiltrados = filtro === 'todos' ? eventosMes : eventosMes.filter(e => e.categoria === filtro);
+  eventosFiltrados.sort((a, b) => new Date(a.fecha + ' ' + (a.hora || '00:00')) - new Date(b.fecha + ' ' + (b.hora || '00:00')));
+
+  const lista = document.getElementById('evLista');
+  if (!lista) return;
+
+  if (eventosFiltrados.length === 0) {
+    lista.innerHTML = '<div class="es"><div class="ei">🎉</div><div class="et">Sin eventos en este filtro</div></div>';
+    return;
+  }
+
+  lista.innerHTML = eventosFiltrados.map(e => {
+    const catIcons = { fiesta: '🎉', show: '🎭', taller: '🎨', actividad: '🎪' };
+    const catColors = { fiesta: 'var(--gn)', show: 'var(--bl)', taller: 'var(--yl)', actividad: 'var(--gd)' };
+    const icon = catIcons[e.categoria] || '📅';
+    const color = catColors[e.categoria] || 'var(--tx2)';
+    const fecha = new Date(e.fecha);
+    const dia = fecha.getDate();
+    const mes = meses[fecha.getMonth()].slice(0, 3);
+    return `
+      <div style="display:flex;gap:12px;padding:12px;border-bottom:1px solid var(--bd);cursor:pointer;" onclick="editEvento('${e.id}')">
+        <div style="text-align:center;min-width:50px;">
+          <div style="font-size:24px;font-weight:700;font-family:Syne,sans-serif;line-height:1;color:${color}">${dia}</div>
+          <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;">${mes}</div>
+        </div>
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+            <span style="font-size:16px;">${icon}</span>
+            <span style="font-size:13px;font-weight:600;">${e.nombre}</span>
+          </div>
+          <div style="font-size:11px;color:var(--tx3);margin-bottom:4px;">${e.hora || '—'} · ${e.responsable || 'Sin responsable'}</div>
+          <div style="font-size:11px;color:var(--tx2);">${e.descripcion || ''}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
+          <span class="tag" style="background:${color}22;color:${color};font-size:9px;">${e.asistencia || 0} asist.</span>
+          <button class="btn br xs" onclick="event.stopPropagation();delEvento('${e.id}')">✕</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Métricas
+  const asistTotal = eventosFiltrados.reduce((sum, e) => sum + (parseInt(e.asistencia) || 0), 0);
+  const asistProm = eventosFiltrados.length > 0 ? Math.round(asistTotal / eventosFiltrados.length) : 0;
+  document.getElementById('evAsistProm').textContent = asistProm || '—';
+
+  // Próximo evento
+  const hoy = new Date();
+  const proximos = eventos.filter(e => new Date(e.fecha) >= hoy).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  const prox = document.getElementById('evProximo');
+  if (prox) {
+    if (proximos.length > 0) {
+      const p = proximos[0];
+      const d = new Date(p.fecha);
+      prox.innerHTML = `<strong>${p.nombre}</strong><br>${d.getDate()} ${meses[d.getMonth()]} · ${p.hora || '—'}`;
+    } else {
+      prox.textContent = 'Sin eventos próximos';
+    }
+  }
+}
+
+function renderCalendarioMensual(eventosMes) {
+  const cal = document.getElementById('evCalendario');
+  if (!cal) return;
+
+  const primerDia = new Date(evCurrentYear, evCurrentMonth, 1).getDay();
+  const diasMes = new Date(evCurrentYear, evCurrentMonth + 1, 0).getDate();
+
+  let html = '<table style="width:100%;border-collapse:collapse;"><thead><tr>';
+  ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].forEach(d => {
+    html += `<th style="padding:8px;font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;">${d}</th>`;
+  });
+  html += '</tr></thead><tbody><tr>';
+
+  // Espacios vacíos antes del primer día
+  for (let i = 0; i < primerDia; i++) {
+    html += '<td style="padding:8px;"></td>';
+  }
+
+  // Días del mes
+  for (let dia = 1; dia <= diasMes; dia++) {
+    const fecha = `${evCurrentYear}-${String(evCurrentMonth + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+    const eventosDelDia = eventosMes.filter(e => e.fecha === fecha);
+    const hoy = new Date();
+    const esHoy = hoy.getDate() === dia && hoy.getMonth() === evCurrentMonth && hoy.getFullYear() === evCurrentYear;
+
+    html += `<td style="padding:8px;border:1px solid var(--bd);vertical-align:top;height:80px;${esHoy ? 'background:var(--gdl);' : ''}">`;
+    html += `<div style="font-size:12px;font-weight:${esHoy ? '700' : '500'};color:${esHoy ? 'var(--gd)' : 'var(--tx)'};margin-bottom:4px;">${dia}</div>`;
+    
+    if (eventosDelDia.length > 0) {
+      eventosDelDia.forEach(e => {
+        const catIcons = { fiesta: '🎉', show: '🎭', taller: '🎨', actividad: '🎪' };
+        const icon = catIcons[e.categoria] || '📅';
+        html += `<div style="font-size:10px;background:var(--bg3);padding:2px 4px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${e.nombre}">${icon} ${e.nombre}</div>`;
+      });
+    }
+    
+    html += '</td>';
+
+    if ((primerDia + dia) % 7 === 0 && dia < diasMes) {
+      html += '</tr><tr>';
+    }
+  }
+
+  html += '</tr></tbody></table>';
+  cal.innerHTML = html;
+}
+
+function gEvento() {
+  const id = document.getElementById('evEditId').value;
+  const evento = {
+    id: id || 'ev_' + Date.now(),
+    nombre: document.getElementById('evNom').value.trim(),
+    categoria: document.getElementById('evCat').value,
+    fecha: document.getElementById('evFecha').value,
+    hora: document.getElementById('evHora').value,
+    descripcion: document.getElementById('evDesc').value.trim(),
+    asistencia: document.getElementById('evAsist').value,
+    responsable: document.getElementById('evResp').value.trim(),
+    notas: document.getElementById('evNotas').value.trim(),
+    creadoPor: CR || 'director',
+    creadoEn: new Date().toISOString()
+  };
+
+  if (!evento.nombre || !evento.fecha) {
+    toast('⚠️ Completa nombre y fecha', 'rd');
+    return;
+  }
+
+  let eventos = S.get('eventos', []);
+  if (id) {
+    const idx = eventos.findIndex(e => e.id === id);
+    if (idx >= 0) eventos[idx] = evento;
+  } else {
+    eventos.unshift(evento);
+    // Notificar por Telegram (si está configurado)
+    if (typeof window.notificarKarim === 'function') {
+      const catIcons = { fiesta: '🎉', show: '🎭', taller: '🎨', actividad: '🎪' };
+      const icon = catIcons[evento.categoria] || '📅';
+      const msg = `${icon} *NUEVO EVENTO*\n\n*${evento.nombre}*\n📅 ${evento.fecha} · ${evento.hora || '—'}\n👤 ${evento.responsable || 'Sin responsable'}\n\n${evento.descripcion || ''}`;
+      window.notificarKarim(msg, 'Markdown');
+    }
+  }
+
+  S.set('eventos', eventos);
+  renderEventos();
+  cm('mEvento');
+  toast('✅ Evento guardado', 'gn');
+}
+
+function editEvento(id) {
+  const eventos = S.get('eventos', []);
+  const evento = eventos.find(e => e.id === id);
+  if (!evento) return;
+
+  document.getElementById('mEventoTtl').textContent = 'Editar Evento';
+  document.getElementById('evEditId').value = evento.id;
+  document.getElementById('evNom').value = evento.nombre;
+  document.getElementById('evCat').value = evento.categoria;
+  document.getElementById('evFecha').value = evento.fecha;
+  document.getElementById('evHora').value = evento.hora || '';
+  document.getElementById('evDesc').value = evento.descripcion || '';
+  document.getElementById('evAsist').value = evento.asistencia || '';
+  document.getElementById('evResp').value = evento.responsable || '';
+  document.getElementById('evNotas').value = evento.notas || '';
+  om('mEvento');
+}
+
+function delEvento(id) {
+  if (!confirm('¿Eliminar este evento?')) return;
+  let eventos = S.get('eventos', []);
+  eventos = eventos.filter(e => e.id !== id);
+  S.set('eventos', eventos);
+  renderEventos();
+  toast('🗑 Evento eliminado', 'rd');
+}
+
+// Auto-render al cargar
+if (typeof window !== 'undefined') {
+  window.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('pg-eventos')) {
+      renderEventos();
+    }
+  });
+}
+</script>
