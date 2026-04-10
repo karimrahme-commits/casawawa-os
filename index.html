@@ -3674,8 +3674,19 @@ function downloadQR(){
 
 // ═══ INIT ═══
 // ════════ EVENTOS MODULE ════════
-let evCurrentMonth = new Date().getMonth();
-let evCurrentYear = new Date().getFullYear();
+// Iniciar en el mes con más eventos (Mayo 2026 = mes 4)
+let evCurrentMonth = (()=>{
+  // Si hay eventos cargados, ir al mes con más eventos
+  // Por defecto: si estamos antes de Mayo 2026, mostrar Mayo 2026
+  const now = new Date();
+  const mayo2026 = new Date(2026, 4, 1);
+  return now < mayo2026 ? 4 : now.getMonth();
+})();
+let evCurrentYear = (()=>{
+  const now = new Date();
+  const mayo2026 = new Date(2026, 4, 1);
+  return now < mayo2026 ? 2026 : now.getFullYear();
+})();
 const EV_MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const EV_CAT_ICONS = {fiesta:'🎉',show:'🎭',taller:'🎨',actividad:'🎪'};
 const EV_CAT_COLORS = {fiesta:'var(--gn)',show:'var(--bl)',taller:'var(--yl)',actividad:'var(--gd)'};
