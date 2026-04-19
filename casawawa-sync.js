@@ -29,6 +29,7 @@
     "customRoles", "rolePins",
     "eventos",
     "rhExpedientes", "rhAreas", "rhIncidencias",
+    "sysRolePerms",
   ];
 
   // Mapa: key → funciones render a llamar cuando llega un cambio remoto
@@ -69,6 +70,7 @@
     rhExpedientes:   ["renderRH"],
     rhAreas:         ["renderRH"],
     rhIncidencias:   ["renderRH"],
+    sysRolePerms:    ["renderRolesList", "renderLoginRoles"],
   };
 
   // ═══════════════════════════════════════════════════════════════════════════

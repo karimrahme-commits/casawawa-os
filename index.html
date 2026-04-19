@@ -1527,6 +1527,19 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);font-si
   <div class="mf"><button class="btn bs" onclick="cm('mRole')">Cancelar</button><button class="btn bg" onclick="saveRole()">Guardar Puesto</button></div>
 </div></div>
 
+<!-- MODAL: EDITAR PERMISOS ROLES DEL SISTEMA -->
+<div class="mo" id="mSysPerms"><div class="mw wide"><div class="mt" id="mSysPermsTtl">Permisos del Rol</div><div class="mst">Activa o desactiva las secciones a las que tiene acceso este puesto</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--bd);">
+    <span style="font-size:11px;color:var(--tx3);">Selecciona qué secciones puede ver y usar este rol</span>
+    <div style="display:flex;gap:4px;">
+      <button class="btn bs xs" onclick="sysPermsToggleAll(true)">✅ Todas</button>
+      <button class="btn bs xs" onclick="sysPermsToggleAll(false)">✕ Ninguna</button>
+    </div>
+  </div>
+  <div id="sysPrmList" style="max-height:60vh;overflow-y:auto;padding-right:4px;"></div>
+  <div class="mf"><button class="btn bs" onclick="cm('mSysPerms')">Cancelar</button><button class="btn bg" onclick="saveSysPerms()">🔐 Guardar Permisos</button></div>
+</div></div>
+
 <!-- MODAL: CHECAR ASISTENCIA -->
 <div class="mo" id="mChecada"><div class="mw"><div class="mt">🔐 Checar Asistencia</div><div class="mst">El empleado ingresa su PIN</div>
   <div style="text-align:center;padding:10px 0;">
@@ -1773,6 +1786,7 @@ function enterApp(rk){
   const _role=getEffectiveRole(rk);
   const firstPage=(_role?.nav||['dashboard'])[0];
   nav(firstPage);
+  applySysPerms();
   renderDash();renderCaptura();renderChecklists();renderTareas();renderCal();renderMenu();renderCaja();renderInv();renderCompras();renderCosteo();renderMermas();renderMesas();renderLog();renderAdmin();renderChecadas();renderHACCP();renderNomina();renderRH();initQR();
   logH('🔐 '+(_role?.name||_role?.label||rk)+' inició sesión');
   setInterval(()=>{const el=document.getElementById('clk');if(el)el.textContent=new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
@@ -3519,7 +3533,10 @@ function renderRolesList(){
     const actualPin=overrides[rk]||r.pin;
     html+=`<div class="role-card"><div class="role-ico" style="background:${r.color}20;border:1px solid ${r.color}40;">${ico}</div>
       <div class="role-info"><div class="role-nm">${name}</div><div class="role-sub">PIN: ${actualPin} · ${r.nav.length} páginas</div></div>
-      <button class="btn bs xs" onclick="changeSystemPin('${rk}')" title="Cambiar PIN">🔑</button></div>`;
+      <div style="display:flex;gap:4px;">
+        <button class="btn bs xs" onclick="editSystemRolePerms('${rk}')" title="Editar permisos">⚙️</button>
+        <button class="btn bs xs" onclick="changeSystemPin('${rk}')" title="Cambiar PIN">🔑</button>
+      </div></div>`;
   });
 
   if(customs.length){
@@ -3537,6 +3554,98 @@ function renderRolesList(){
     html+='<div style="padding:10px;font-size:11px;color:var(--tx3);text-align:center;">No hay puestos personalizados. Crea uno con "+ Nuevo Puesto"</div>';
   }
   container.innerHTML=html;
+}
+
+// ═══ EDITOR DE PERMISOS DE ROLES DEL SISTEMA ═══
+let _editingSysRole = '';
+
+function editSystemRolePerms(roleKey){
+  _editingSysRole = roleKey;
+  const r = ROLES[roleKey];
+  if(!r) return;
+  // Obtener permisos guardados (pueden estar en sysRolePerms o usar los defaults de ROLES)
+  const sysPerms = S.get('sysRolePerms', {});
+  const currentNav = sysPerms[roleKey] !== undefined ? sysPerms[roleKey] : (r.nav || []);
+  const allPages = Object.keys(PMETA);
+  document.getElementById('mSysPermsTtl').textContent = 'Permisos: ' + (r.label || r.name || roleKey);
+  // Agrupar por sección
+  const grupos = [
+    {label:'Principal', pages:['dashboard']},
+    {label:'Operación', pages:['captura','checklists','tareas','calendario','eventos','asistencia']},
+    {label:'Menú & Cocina', pages:['menu','costeo','mermas']},
+    {label:'Finanzas', pages:['caja','inventario','compras','nomina']},
+    {label:'Personal', pages:['rh']},
+    {label:'Operación Salón', pages:['mesas','haccp']},
+    {label:'Reportes & Sistema', pages:['log','ia','admin','integracion']},
+  ];
+  const container = document.getElementById('sysPrmList');
+  let html = '';
+  grupos.forEach(g => {
+    const pagesInGroup = g.pages.filter(p => allPages.includes(p));
+    if(!pagesInGroup.length) return;
+    html += `<div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--tx3);padding:10px 0 4px;font-weight:700;border-top:1px solid var(--bd);">${g.label}</div>`;
+    html += pagesInGroup.map(p => {
+      const meta = PMETA[p];
+      const active = currentNav.includes(p);
+      return `<label style="display:flex;align-items:center;gap:10px;padding:7px 6px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
+        <input type="checkbox" data-page="${p}" ${active ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--gd);cursor:pointer;">
+        <span style="font-size:13px;">${meta.i}</span>
+        <span style="font-size:12px;font-weight:500;">${meta.t}</span>
+      </label>`;
+    }).join('');
+  });
+  // Páginas no agrupadas
+  const grouped = grupos.flatMap(g=>g.pages);
+  const ungrouped = allPages.filter(p => !grouped.includes(p));
+  if(ungrouped.length){
+    html += `<div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--tx3);padding:10px 0 4px;font-weight:700;border-top:1px solid var(--bd);">Otros</div>`;
+    html += ungrouped.map(p => {
+      const meta = PMETA[p];
+      const active = currentNav.includes(p);
+      return `<label style="display:flex;align-items:center;gap:10px;padding:7px 6px;border-radius:8px;cursor:pointer;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
+        <input type="checkbox" data-page="${p}" ${active ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--gd);cursor:pointer;">
+        <span style="font-size:13px;">${meta.i}</span>
+        <span style="font-size:12px;font-weight:500;">${meta.t}</span>
+      </label>`;
+    }).join('');
+  }
+  container.innerHTML = html;
+  om('mSysPerms');
+}
+
+function sysPermsToggleAll(on){
+  document.querySelectorAll('#sysPrmList input[type=checkbox]').forEach(cb => cb.checked = on);
+}
+
+function saveSysPerms(){
+  const roleKey = _editingSysRole;
+  if(!roleKey) return;
+  const newNav = [];
+  document.querySelectorAll('#sysPrmList input[type=checkbox]:checked').forEach(cb => newNav.push(cb.dataset.page));
+  if(!newNav.length){toast('\u26a0 Selecciona al menos 1 sección');return;}
+  // Guardar en sysRolePerms
+  const sysPerms = S.get('sysRolePerms', {});
+  sysPerms[roleKey] = newNav;
+  S.set('sysRolePerms', sysPerms);
+  // Aplicar inmediatamente al ROLES en memoria
+  if(ROLES[roleKey]) ROLES[roleKey].nav = newNav;
+  cm('mSysPerms');
+  renderRolesList();
+  renderLoginRoles();
+  // Si el usuario actual es este rol, actualizar su nav
+  if(typeof CR !== 'undefined' && CR === roleKey){
+    setupApp();
+  }
+  toast('\u2705 Permisos de ' + (ROLES[roleKey]?.label || roleKey) + ' actualizados');
+  logH('\ud83d\udd10 Permisos editados: ' + (ROLES[roleKey]?.label || roleKey) + ' (' + newNav.length + ' secciones)');
+}
+
+// Aplicar permisos guardados al iniciar sesión
+function applySysPerms(){
+  const sysPerms = S.get('sysRolePerms', {});
+  Object.entries(sysPerms).forEach(([rk, nav]) => {
+    if(ROLES[rk]) ROLES[rk].nav = nav;
+  });
 }
 
 // ═══ CHECADAS (CLOCK IN/OUT) ═══
