@@ -420,6 +420,150 @@ def sync_wawa_calendar():
         "msg": msg
     })
 
+# ─── Webhook de Telegram (responde comandos del bot) ────────────────────────
+def _build_resumen():
+    """Construye el resumen del día para enviar por Telegram."""
+    hoy = datetime.now().strftime("%Y-%m-%d")
+    ahora = datetime.now().strftime("%H:%M")
+
+    # Ventas del día
+    ventas = _store.get("ventas") or []
+    ventas_hoy = [v for v in ventas if v.get("fecha") == hoy]
+    total_ventas = sum(float(v.get("ventas", 0)) for v in ventas_hoy)
+    comensales = sum(int(v.get("comensales", 0)) for v in ventas_hoy)
+    ticket = f"${total_ventas/comensales:,.0f}" if comensales else "—"
+
+    # Alertas activas
+    alertas = _store.get("alertas") or []
+    alertas_act = [a for a in alertas if not a.get("resolved")]
+
+    # Tareas pendientes
+    tareas = _store.get("tareas") or []
+    tareas_pend = [t for t in tareas if t.get("est") == "p" or t.get("estado") == "pendiente"]
+
+    # Inventario bajo stock
+    inventario = _store.get("inventario") or []
+    bajo_stock = [i for i in inventario if float(i.get("stock", 0) or 0) <= float(i.get("stockMin", 0) or 0)]
+
+    # Próximos eventos
+    eventos = _store.get("eventos") or []
+    proximos = sorted(
+        [e for e in eventos if e.get("fecha", "") >= hoy],
+        key=lambda x: (x.get("fecha", ""), x.get("hora", ""))
+    )[:3]
+
+    # Entradas del día
+    entradas = _store.get("entradas") or []
+    entradas_hoy = [e for e in entradas if e.get("fecha") == hoy]
+    total_entradas = len(entradas_hoy)
+    ingresos_entradas = sum(float(e.get("precio", 0) or 0) for e in entradas_hoy)
+
+    msg = f"📊 <b>RESUMEN DEL DÍA — Casa Wawa</b>\n"
+    msg += f"📅 {hoy} · {ahora}\n\n"
+
+    msg += f"💰 <b>Ventas del turno</b>\n"
+    msg += f"   Total: <b>${total_ventas:,.0f}</b>\n"
+    if comensales:
+        msg += f"   Comensales: {comensales} · Ticket: {ticket}\n"
+
+    if total_entradas:
+        msg += f"\n🎟️ <b>Entradas cobradas</b>\n"
+        msg += f"   {total_entradas} entradas · ${ingresos_entradas:,.0f}\n"
+
+    if alertas_act:
+        msg += f"\n🚨 <b>Alertas activas:</b> {len(alertas_act)}\n"
+        for a in alertas_act[:2]:
+            msg += f"   • {a.get('titulo', a.get('texto', '?'))}\n"
+
+    if tareas_pend:
+        msg += f"\n✅ <b>Tareas pendientes:</b> {len(tareas_pend)}\n"
+
+    if bajo_stock:
+        msg += f"\n📦 <b>Bajo stock:</b> {len(bajo_stock)} artículos\n"
+        for i in bajo_stock[:2]:
+            msg += f"   • {i.get('nombre', '?')}\n"
+
+    if proximos:
+        msg += f"\n🎉 <b>Próximos eventos</b>\n"
+        for e in proximos:
+            cat_icon = {'fiesta':'🎉','show':'🎭','taller':'🎨','actividad':'🎪'}.get(e.get('categoria',''), '📅')
+            msg += f"   {cat_icon} {e.get('fecha','')} {e.get('hora','')} — {e.get('nombre','')}\n"
+
+    msg += f"\n🔗 <a href=\"https://casawawa-web-production.up.railway.app\">Abrir Casa Wawa OS</a>"
+    return msg
+
+@app.route("/api/telegram/webhook", methods=["POST"])
+def telegram_webhook():
+    """Recibe mensajes del bot de Telegram y responde a comandos."""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        message = data.get("message") or data.get("edited_message") or {}
+        text = message.get("text", "").strip()
+        chat_id = message.get("chat", {}).get("id")
+        from_name = message.get("from", {}).get("first_name", "")
+
+        if not chat_id or not text:
+            return jsonify({"ok": True})
+
+        print(f"[TelegramBot] Mensaje de {from_name} ({chat_id}): {text}")
+
+        # Solo responder al chat autorizado
+        if str(chat_id) != str(TELEGRAM_CHAT_ID):
+            _send_telegram_to(chat_id, "⛔ No tienes acceso a este bot.")
+            return jsonify({"ok": True})
+
+        cmd = text.split()[0].lower().replace("@superkarim_bot", "")
+
+        if cmd == "/resumen" or cmd == "/start":
+            reply = _build_resumen()
+            _send_telegram_to(chat_id, reply)
+        elif cmd == "/eventos":
+            hoy = datetime.now().strftime("%Y-%m-%d")
+            eventos = _store.get("eventos") or []
+            proximos = sorted(
+                [e for e in eventos if e.get("fecha", "") >= hoy],
+                key=lambda x: (x.get("fecha", ""), x.get("hora", ""))
+            )[:5]
+            if proximos:
+                reply = "🎉 <b>Próximos Eventos Casa Wawa</b>\n\n"
+                for e in proximos:
+                    cat_icon = {'fiesta':'🎉','show':'🎭','taller':'🎨','actividad':'🎪'}.get(e.get('categoria',''), '📅')
+                    reply += f"{cat_icon} <b>{e.get('nombre','')}</b>\n"
+                    reply += f"   📅 {e.get('fecha','')} · {e.get('hora','')}–{e.get('horaFin','')}\n"
+                    if e.get('descripcion') and e.get('descripcion') != 'confirmado':
+                        reply += f"   {e.get('descripcion','')[:80]}\n"
+                    reply += "\n"
+            else:
+                reply = "📅 No hay eventos próximos programados."
+            _send_telegram_to(chat_id, reply)
+        elif cmd == "/ayuda" or cmd == "/help":
+            reply = (
+                "🤖 <b>Súper Karim Bot — Comandos</b>\n\n"
+                "/resumen — Resumen del día (ventas, alertas, eventos)\n"
+                "/eventos — Próximos 5 eventos\n"
+                "/ayuda — Esta lista de comandos\n\n"
+                "🔗 <a href=\"https://casawawa-web-production.up.railway.app\">Abrir Casa Wawa OS</a>"
+            )
+            _send_telegram_to(chat_id, reply)
+        else:
+            reply = f"🤖 No reconozco ese comando. Escribe /ayuda para ver los disponibles."
+            _send_telegram_to(chat_id, reply)
+
+        return jsonify({"ok": True})
+    except Exception as e:
+        print(f"[TelegramBot] Error en webhook: {e}")
+        return jsonify({"ok": True})
+
+def _send_telegram_to(chat_id, message, parse_mode="HTML"):
+    """Envía un mensaje a un chat_id específico."""
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        payload = {"chat_id": chat_id, "text": message, "parse_mode": parse_mode,
+                   "disable_web_page_preview": False}
+        req_lib.post(url, json=payload, timeout=10)
+    except Exception as e:
+        print(f"[TelegramBot] Error enviando a {chat_id}: {e}")
+
 # ─── Arranque ─────────────────────────────────────────────────────
 _load_seed()
 if __name__ == "__main__":
