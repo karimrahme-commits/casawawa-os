@@ -1802,6 +1802,22 @@ function enterApp(rk){
 }
 function logout(){CR=null;pinStr='';selRole=null;document.getElementById('app').style.display='none';document.getElementById('ls').style.display='flex';document.querySelectorAll('.rc').forEach(c=>c.classList.remove('s'));document.getElementById('psec').style.display='none';dots();renderLoginRoles();}
 
+// ═══ SOPORTE TECLADO FÍSICO PARA PIN ═══
+document.addEventListener('keydown', function(e){
+  // Solo activo si la pantalla de login está visible
+  const ls = document.getElementById('ls');
+  if (!ls || ls.style.display === 'none') return;
+  // Si no hay rol seleccionado, ignorar
+  if (!selRole) return;
+  // Ignorar si hay un input enfocado
+  if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
+  const k = e.key;
+  if (k >= '0' && k <= '9') { e.preventDefault(); pp(k); }
+  else if (k === 'Backspace') { e.preventDefault(); pb2(); }
+  else if (k === 'Escape') { e.preventDefault(); pc2(); }
+  else if (k === 'Enter' && pinStr.length === 4) { e.preventDefault(); chkPin(); }
+});
+
 function setupApp(){
   const r=getEffectiveRole(CR);if(!r)return;
   document.getElementById('sbRl').textContent=(r.label||'').toUpperCase();
