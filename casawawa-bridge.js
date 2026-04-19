@@ -56,7 +56,8 @@
       "ventas", "costos", "alertas", "tareas", "empleados", "turnos",
       "logE", "metas", "reportes", "historial", "pendientes", "clItems",
       "inventario", "invCats", "ordenes", "proveedores", "recetas",
-      "mermas", "mesas", "reservas", "eventos"
+      "mermas", "mesas", "reservas", "eventos",
+      "rhExpedientes", "rhAreas", "rhIncidencias"
     ];
     CLAVES.forEach((k) => {
       const raw = localStorage.getItem("cw_" + k);

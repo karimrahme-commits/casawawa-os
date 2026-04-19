@@ -28,6 +28,7 @@
     "checadas", "equiposTemp", "registrosTemp",
     "customRoles", "rolePins",
     "eventos",
+    "rhExpedientes", "rhAreas", "rhIncidencias",
   ];
 
   // Mapa: key → funciones render a llamar cuando llega un cambio remoto
@@ -65,6 +66,9 @@
     customRoles:     ["renderAdmin", "renderLoginRoles"],
     rolePins:        ["renderAdmin"],
     eventos:         ["renderEventos"],
+    rhExpedientes:   ["renderRH"],
+    rhAreas:         ["renderRH"],
+    rhIncidencias:   ["renderRH"],
   };
 
   // ═══════════════════════════════════════════════════════════════════════════

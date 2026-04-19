@@ -1047,6 +1047,30 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);font-si
   </div>
 </div>
 
+<!-- ===== RECURSOS HUMANOS ===== -->
+<div class="pg" id="pg-rh">
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <button class="btn bs sm" id="rhBtnTodos" onclick="rhFiltroArea('todos',this)">Todos</button>
+      <div id="rhAreaTabs" style="display:flex;gap:4px;flex-wrap:wrap;"></div>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <button class="btn bs sm" onclick="om('mRhArea')">+ Área</button>
+      <button class="btn bg" onclick="rhNuevo()">+ Empleado</button>
+    </div>
+  </div>
+  <!-- KPIs -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;">
+    <div class="kpi"><div class="kl">Total Personal</div><div class="kv" id="rhTotal" style="color:var(--gd)">0</div><div class="kf">Registrados</div></div>
+    <div class="kpi"><div class="kl">Activos</div><div class="kv" id="rhActivos" style="color:var(--gn)">0</div><div class="kf">En plantilla</div></div>
+    <div class="kpi"><div class="kl">De Baja</div><div class="kv" id="rhBaja" style="color:var(--rd)">0</div><div class="kf">Inactivos</div></div>
+    <div class="kpi"><div class="kl">Áreas</div><div class="kv" id="rhAreas">0</div><div class="kf">Departamentos</div></div>
+  </div>
+  <!-- Grid de tarjetas -->
+  <div id="rhGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;"></div>
+</div>
+
 <!-- ===== ADMIN ===== -->
 <div class="pg" id="pg-admin">
   <div class="g2">
@@ -1356,6 +1380,126 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);font-si
   <div class="mf"><button class="btn bs" onclick="cm('mEvento')">Cancelar</button><button class="btn bg" onclick="gEvento()">Guardar Evento</button></div>
 </div></div>
 
+<!-- MODALES: RECURSOS HUMANOS -->
+<!-- MODAL: Nueva Área RH -->
+<div class="mo" id="mRhArea"><div class="mw"><div class="mt">Nueva Área</div><div class="mst">Agrega un departamento o área de trabajo</div>
+  <div class="fg"><label class="fl">Nombre del área</label><input class="fi" type="text" id="rhAreaNm" placeholder="Ej: Cocina, Servicio, Wawa Zone..."></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Color</label><input class="fi" type="color" id="rhAreaColor" value="#3dba74" style="height:38px;padding:2px 4px;"></div>
+    <div class="fg"><label class="fl">Emoji</label><input class="fi" type="text" id="rhAreaEmoji" placeholder="🍳" style="max-width:70px;font-size:20px;text-align:center;"></div>
+  </div>
+  <div class="mf"><button class="btn bs" onclick="cm('mRhArea')">Cancelar</button><button class="btn bg" onclick="rhGuardarArea()">Guardar Área</button></div>
+</div></div>
+
+<!-- MODAL: Nuevo/Editar Empleado RH -->
+<div class="mo" id="mRhEmp"><div class="mw wide"><div class="mt" id="mRhEmpTtl">Nuevo Empleado</div><div class="mst">Expediente completo del colaborador</div>
+  <input type="hidden" id="rhEmpId">
+  <!-- Sección: Datos personales -->
+  <div style="font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:1px;margin-bottom:8px;margin-top:4px;">DATOS PERSONALES</div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Nombre completo</label><input class="fi" type="text" id="rhNm" placeholder="Nombre completo"></div>
+    <div class="fg"><label class="fl">Fecha de nacimiento</label><input class="fi" type="date" id="rhFechaNac"></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Teléfono</label><input class="fi" type="tel" id="rhTel" placeholder="999 000 0000"></div>
+    <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="rhEmail" placeholder="correo@ejemplo.com"></div>
+  </div>
+  <div class="fg"><label class="fl">Dirección</label><input class="fi" type="text" id="rhDir" placeholder="Calle, colonia, ciudad"></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">CURP</label><input class="fi" type="text" id="rhCurp" placeholder="CURP" style="text-transform:uppercase;"></div>
+    <div class="fg"><label class="fl">RFC</label><input class="fi" type="text" id="rhRfc" placeholder="RFC" style="text-transform:uppercase;"></div>
+  </div>
+  <div class="fg"><label class="fl">Contacto de emergencia</label><input class="fi" type="text" id="rhEmergencia" placeholder="Nombre y teléfono"></div>
+  <!-- Sección: Puesto y contrato -->
+  <div style="font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:1px;margin-bottom:8px;margin-top:14px;">PUESTO Y CONTRATO</div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Puesto</label><input class="fi" type="text" id="rhPuesto" placeholder="Chef, Mesero, Animadora..."></div>
+    <div class="fg"><label class="fl">Área</label><select class="fi" id="rhArea"></select></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Tipo de contrato</label><select class="fi" id="rhContrato"><option>Tiempo completo</option><option>Medio tiempo</option><option>Por evento</option><option>Temporal</option><option>Honorarios</option></select></div>
+    <div class="fg"><label class="fl">Fecha de ingreso</label><input class="fi" type="date" id="rhIngreso"></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Sueldo base ($)</label><input class="fi" type="number" id="rhSueldo" placeholder="Ej: 8000" step="0.01"></div>
+    <div class="fg"><label class="fl">Sueldo por hora ($)</label><input class="fi" type="number" id="rhSueldoHr" placeholder="Ej: 62.50" step="0.01"></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">PIN de asistencia (4 dígitos)</label><input class="fi" type="text" id="rhPin" placeholder="1234" maxlength="4" inputmode="numeric" style="max-width:130px;letter-spacing:6px;font-size:16px;text-align:center;font-weight:700;"></div>
+    <div class="fg"><label class="fl">Estatus</label><select class="fi" id="rhEstatus"><option value="activo">✅ Activo</option><option value="baja">❌ De baja</option><option value="vacaciones">🏖️ Vacaciones</option><option value="incapacidad">🏥 Incapacidad</option></select></div>
+  </div>
+  <!-- Sección: Horario semanal -->
+  <div style="font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:1px;margin-bottom:8px;margin-top:14px;">HORARIO SEMANAL</div>
+  <div id="rhHorarioGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:8px;">
+    <div style="text-align:center;">
+      <div style="font-size:9px;color:var(--tx3);margin-bottom:4px;">LUN</div>
+      <input type="checkbox" id="rhDLun" style="margin-bottom:3px;"><br>
+      <input class="fi" type="time" id="rhHLun" style="font-size:9px;padding:2px 3px;" placeholder="09:00">
+      <input class="fi" type="time" id="rhHLunF" style="font-size:9px;padding:2px 3px;" placeholder="17:00">
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:9px;color:var(--tx3);margin-bottom:4px;">MAR</div>
+      <input type="checkbox" id="rhDMar" style="margin-bottom:3px;"><br>
+      <input class="fi" type="time" id="rhHMar" style="font-size:9px;padding:2px 3px;">
+      <input class="fi" type="time" id="rhHMarF" style="font-size:9px;padding:2px 3px;">
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:9px;color:var(--tx3);margin-bottom:4px;">MIÉ</div>
+      <input type="checkbox" id="rhDMie" style="margin-bottom:3px;"><br>
+      <input class="fi" type="time" id="rhHMie" style="font-size:9px;padding:2px 3px;">
+      <input class="fi" type="time" id="rhHMieF" style="font-size:9px;padding:2px 3px;">
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:9px;color:var(--tx3);margin-bottom:4px;">JUE</div>
+      <input type="checkbox" id="rhDJue" style="margin-bottom:3px;"><br>
+      <input class="fi" type="time" id="rhHJue" style="font-size:9px;padding:2px 3px;">
+      <input class="fi" type="time" id="rhHJueF" style="font-size:9px;padding:2px 3px;">
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:9px;color:var(--tx3);margin-bottom:4px;">VIE</div>
+      <input type="checkbox" id="rhDVie" style="margin-bottom:3px;"><br>
+      <input class="fi" type="time" id="rhHVie" style="font-size:9px;padding:2px 3px;">
+      <input class="fi" type="time" id="rhHVieF" style="font-size:9px;padding:2px 3px;">
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:9px;color:var(--tx3);margin-bottom:4px;">SÁB</div>
+      <input type="checkbox" id="rhDSab" style="margin-bottom:3px;"><br>
+      <input class="fi" type="time" id="rhHSab" style="font-size:9px;padding:2px 3px;">
+      <input class="fi" type="time" id="rhHSabF" style="font-size:9px;padding:2px 3px;">
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:9px;color:var(--tx3);margin-bottom:4px;">DOM</div>
+      <input type="checkbox" id="rhDDom" style="margin-bottom:3px;"><br>
+      <input class="fi" type="time" id="rhHDom" style="font-size:9px;padding:2px 3px;">
+      <input class="fi" type="time" id="rhHDomF" style="font-size:9px;padding:2px 3px;">
+    </div>
+  </div>
+  <!-- Sección: Notas -->
+  <div style="font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:1px;margin-bottom:8px;margin-top:14px;">NOTAS / OBSERVACIONES</div>
+  <div class="fg"><textarea class="fi fta" id="rhNotas" placeholder="Habilidades especiales, restricciones, notas del contrato..."></textarea></div>
+  <div class="mf"><button class="btn bs" onclick="cm('mRhEmp')">Cancelar</button><button class="btn bg" onclick="rhGuardarEmp()">Guardar Expediente</button></div>
+</div></div>
+
+<!-- MODAL: Ficha detallada del empleado -->
+<div class="mo" id="mRhFicha"><div class="mw wide"><div class="mt" id="mRhFichaTtl">Expediente</div>
+  <div id="mRhFichaBody" style="max-height:70vh;overflow-y:auto;"></div>
+  <div class="mf">
+    <button class="btn bs" onclick="cm('mRhFicha')">Cerrar</button>
+    <button class="btn bs" id="mRhFichaEditBtn" onclick="">✏️ Editar</button>
+  </div>
+</div></div>
+
+<!-- MODAL: Nueva Incidencia -->
+<div class="mo" id="mRhIncidencia"><div class="mw"><div class="mt">Registrar Incidencia</div>
+  <input type="hidden" id="rhIncEmpId">
+  <div class="fr">
+    <div class="fg"><label class="fl">Tipo</label><select class="fi" id="rhIncTipo"><option value="falta">❌ Falta</option><option value="retardo">⏰ Retardo</option><option value="permiso">📝 Permiso</option><option value="vacaciones">🏖️ Vacaciones</option><option value="incapacidad">🏥 Incapacidad</option><option value="reconocimiento">⭐ Reconocimiento</option><option value="amonestacion">⚠️ Amonestación</option></select></div>
+    <div class="fg"><label class="fl">Fecha</label><input class="fi" type="date" id="rhIncFecha"></div>
+  </div>
+  <div class="fg"><label class="fl">Descripción</label><textarea class="fi fta" id="rhIncDesc" placeholder="Detalle de la incidencia..."></textarea></div>
+  <div class="mf"><button class="btn bs" onclick="cm('mRhIncidencia')">Cancelar</button><button class="btn bg" onclick="rhGuardarIncidencia()">Guardar</button></div>
+</div></div>
+
 <!-- MODAL: NUEVO PUESTO -->
 <div class="mo" id="mRole"><div class="mw wide"><div class="mt" id="mRoleTtl">Nuevo Puesto</div><div class="mst">Define nombre, PIN y permisos de acceso</div>
   <input type="hidden" id="rlEditId" value="">
@@ -1446,11 +1590,11 @@ const S={
 // ═══ ROLES & CONFIG ═══
 const ROLES={
   director:{name:'Director General',label:'Director',ini:'DR',color:'#d4a840',pin:'1234',
-    nav:['dashboard','captura','checklists','tareas','calendario','eventos','checadas','menu','caja','inventario','compras','costeo','mermas','mesas','haccp','nomina','log','ia','integracion','admin']},
+    nav:['dashboard','captura','checklists','tareas','calendario','eventos','checadas','menu','caja','inventario','compras','costeo','mermas','mesas','haccp','nomina','rh','log','ia','integracion','admin']},
   gerente:{name:'Gerente de Turno',label:'Gerente',ini:'GT',color:'#3dba74',pin:'2222',
     nav:['dashboard','captura','checklists','tareas','checadas','menu','caja','haccp','log','ia','mesas','eventos']},
   admin:{name:'Administrador',label:'Admin',ini:'AD',color:'#4a8ce0',pin:'3333',
-    nav:['dashboard','captura','caja','checadas','inventario','compras','costeo','mermas','haccp','nomina','integracion','admin']},
+    nav:['dashboard','captura','caja','checadas','inventario','compras','costeo','mermas','haccp','nomina','rh','integracion','admin']},
   infantil:{name:'Sup. Infantil',label:'Wawa Zone',ini:'SI',color:'#e0a832',pin:'4444',
     nav:['checklists','tareas','checadas','log']}
 };
@@ -1474,9 +1618,10 @@ const PMETA={
   admin:{t:'Administrador',s:'Configuración',i:'⚙'},
   checadas:{t:'Asistencia',s:'Entrada y salida del personal',i:'⏰'},
   haccp:{t:'HACCP Temperaturas',s:'Control de inocuidad',i:'🌡️'},
-  nomina:{t:'Nómina',s:'Horas y sueldos del personal',i:'💰'}
+  nomina:{t:'Nómina',s:'Horas y sueldos del personal',i:'💰'},
+  rh:{t:'Recursos Humanos',s:'Expedientes del personal',i:'👥'}
 };
-const SECS={dashboard:'Principal',captura:'Operación',checklists:'Operación',tareas:'Operación',calendario:'Operación',eventos:'Operación',checadas:'Operación',mesas:'Operación',inventario:'Finanzas',compras:'Finanzas',costeo:'Finanzas',mermas:'Finanzas',menu:'Operación',caja:'Operación',haccp:'Operación',nomina:'Finanzas',log:'Reportes',ia:'Reportes',integracion:'Sistema',admin:'Sistema'};
+const SECS={dashboard:'Principal',captura:'Operación',checklists:'Operación',tareas:'Operación',calendario:'Operación',eventos:'Operación',checadas:'Operación',mesas:'Operación',inventario:'Finanzas',compras:'Finanzas',costeo:'Finanzas',mermas:'Finanzas',menu:'Operación',caja:'Operación',haccp:'Operación',nomina:'Finanzas',rh:'Personal',log:'Reportes',ia:'Reportes',integracion:'Sistema',admin:'Sistema'};
 
 // Default checklist items por turno
 // Turnos: Apertura 8am-3pm | Tarde 3pm-8pm | Cierre 8pm+
@@ -1628,7 +1773,7 @@ function enterApp(rk){
   const _role=getEffectiveRole(rk);
   const firstPage=(_role?.nav||['dashboard'])[0];
   nav(firstPage);
-  renderDash();renderCaptura();renderChecklists();renderTareas();renderCal();renderMenu();renderCaja();renderInv();renderCompras();renderCosteo();renderMermas();renderMesas();renderLog();renderAdmin();renderChecadas();renderHACCP();renderNomina();initQR();
+  renderDash();renderCaptura();renderChecklists();renderTareas();renderCal();renderMenu();renderCaja();renderInv();renderCompras();renderCosteo();renderMermas();renderMesas();renderLog();renderAdmin();renderChecadas();renderHACCP();renderNomina();renderRH();initQR();
   logH('🔐 '+(_role?.name||_role?.label||rk)+' inició sesión');
   setInterval(()=>{const el=document.getElementById('clk');if(el)el.textContent=new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
   ['vF','cFe','mF','cF','tnF','mermaFecha','resFecha','ocFecha'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.value)el.value=today();});
@@ -1664,6 +1809,7 @@ function setupApp(){
 function nav(p){
   const _nr=getEffectiveRole(CR);if(_nr&&!(_nr.nav||[]).includes(p))return;
   if(p==='eventos'){setTimeout(()=>renderEventos(),50);}
+  if(p==='rh'){setTimeout(()=>renderRH(),50);}
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('ac'));
   document.querySelectorAll('.pg').forEach(g=>g.classList.remove('ac'));
   document.getElementById('ni-'+p)?.classList.add('ac');
@@ -3925,6 +4071,347 @@ function applyBranding(cfg){
   }
 }
 
+// ════════ RECURSOS HUMANOS MODULE ════════
+const RH_DIAS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const RH_DIAS_IDS = ['Lun','Mar','Mie','Jue','Vie','Sab','Dom'];
+const RH_AREAS_DEFAULT = [
+  {id:'area_1',nombre:'Cocina',color:'#e05252',emoji:'🍳'},
+  {id:'area_2',nombre:'Servicio',color:'#3dba74',emoji:'🍽️'},
+  {id:'area_3',nombre:'Barra',color:'#4a8ce0',emoji:'🍹'},
+  {id:'area_4',nombre:'Wawa Zone',color:'#d4a840',emoji:'🎈'},
+  {id:'area_5',nombre:'Admin',color:'#9b59b6',emoji:'💼'},
+  {id:'area_6',nombre:'Limpieza',color:'#1abc9c',emoji:'🧹'},
+];
+let rhFiltroActual = 'todos';
+
+function rhGetAreas(){
+  let areas = S.get('rhAreas',[]);
+  if(!areas.length){areas=RH_AREAS_DEFAULT;S.set('rhAreas',areas);}
+  return areas;
+}
+
+function rhGuardarArea(){
+  const nm = document.getElementById('rhAreaNm').value.trim();
+  if(!nm){toast('⚠ Escribe el nombre del área');return;}
+  const areas = rhGetAreas();
+  const color = document.getElementById('rhAreaColor').value||'#3dba74';
+  const emoji = document.getElementById('rhAreaEmoji').value.trim()||'🏢';
+  areas.push({id:'area_'+Date.now(),nombre:nm,color,emoji});
+  S.set('rhAreas',areas);
+  cm('mRhArea');
+  document.getElementById('rhAreaNm').value='';
+  document.getElementById('rhAreaEmoji').value='';
+  renderRH();
+  toast('✅ Área creada');
+}
+
+function rhFiltroArea(area, btn){
+  rhFiltroActual = area;
+  document.querySelectorAll('#rhAreaTabs .btn, #rhBtnTodos').forEach(b=>b.classList.remove('bg'));
+  if(btn)btn.classList.add('bg');
+  renderRH();
+}
+
+function rhNuevo(){
+  // Reset form
+  document.getElementById('mRhEmpTtl').textContent='Nuevo Empleado';
+  document.getElementById('rhEmpId').value='';
+  ['rhNm','rhTel','rhEmail','rhDir','rhCurp','rhRfc','rhEmergencia','rhPuesto','rhSueldo','rhSueldoHr','rhPin','rhNotas'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('rhFechaNac').value='';
+  document.getElementById('rhIngreso').value='';
+  document.getElementById('rhEstatus').value='activo';
+  document.getElementById('rhContrato').value='Tiempo completo';
+  // Reset horario
+  RH_DIAS_IDS.forEach(d=>{
+    const cb=document.getElementById('rhD'+d);if(cb)cb.checked=false;
+    const hi=document.getElementById('rhH'+d);if(hi)hi.value='';
+    const hf=document.getElementById('rhH'+d+'F');if(hf)hf.value='';
+  });
+  // Populate area select
+  const sel=document.getElementById('rhArea');
+  if(sel)sel.innerHTML=rhGetAreas().map(a=>`<option value="${a.id}">${a.emoji} ${a.nombre}</option>`).join('');
+  om('mRhEmp');
+}
+
+function rhEditarEmp(id){
+  const emps=S.get('rhExpedientes',[]);
+  const e=emps.find(x=>x.id===id);
+  if(!e)return;
+  document.getElementById('mRhEmpTtl').textContent='Editar Expediente';
+  document.getElementById('rhEmpId').value=e.id;
+  document.getElementById('rhNm').value=e.nombre||'';
+  document.getElementById('rhFechaNac').value=e.fechaNac||'';
+  document.getElementById('rhTel').value=e.tel||'';
+  document.getElementById('rhEmail').value=e.email||'';
+  document.getElementById('rhDir').value=e.direccion||'';
+  document.getElementById('rhCurp').value=e.curp||'';
+  document.getElementById('rhRfc').value=e.rfc||'';
+  document.getElementById('rhEmergencia').value=e.emergencia||'';
+  document.getElementById('rhPuesto').value=e.puesto||'';
+  document.getElementById('rhContrato').value=e.contrato||'Tiempo completo';
+  document.getElementById('rhIngreso').value=e.ingreso||'';
+  document.getElementById('rhSueldo').value=e.sueldo||'';
+  document.getElementById('rhSueldoHr').value=e.sueldoHr||'';
+  document.getElementById('rhPin').value=e.pin||'';
+  document.getElementById('rhEstatus').value=e.estatus||'activo';
+  document.getElementById('rhNotas').value=e.notas||'';
+  // Populate area select
+  const sel=document.getElementById('rhArea');
+  if(sel){sel.innerHTML=rhGetAreas().map(a=>`<option value="${a.id}">${a.emoji} ${a.nombre}</option>`).join('');sel.value=e.areaId||'';}
+  // Horario
+  const h=e.horario||{};
+  RH_DIAS_IDS.forEach(d=>{
+    const cb=document.getElementById('rhD'+d);if(cb)cb.checked=!!(h[d]&&h[d].activo);
+    const hi=document.getElementById('rhH'+d);if(hi)hi.value=(h[d]&&h[d].entrada)||'';
+    const hf=document.getElementById('rhH'+d+'F');if(hf)hf.value=(h[d]&&h[d].salida)||'';
+  });
+  cm('mRhFicha');
+  om('mRhEmp');
+}
+
+function rhGuardarEmp(){
+  const nm=document.getElementById('rhNm').value.trim();
+  if(!nm){toast('⚠ Escribe el nombre');return;}
+  const pin=document.getElementById('rhPin').value.trim();
+  if(pin&&pin.length!==4){toast('⚠ El PIN debe ser de 4 dígitos');return;}
+  // Horario
+  const horario={};
+  RH_DIAS_IDS.forEach(d=>{
+    const cb=document.getElementById('rhD'+d);
+    const hi=document.getElementById('rhH'+d);
+    const hf=document.getElementById('rhH'+d+'F');
+    horario[d]={activo:cb&&cb.checked,entrada:(hi&&hi.value)||'',salida:(hf&&hf.value)||''};
+  });
+  const areaSel=document.getElementById('rhArea');
+  const areaId=areaSel?areaSel.value:'';
+  const areas=rhGetAreas();
+  const areaNombre=areas.find(a=>a.id===areaId)?.nombre||areaId;
+  const editId=document.getElementById('rhEmpId').value;
+  const emp={
+    id:editId||'rh_'+Date.now(),
+    nombre:nm,
+    fechaNac:document.getElementById('rhFechaNac').value,
+    tel:document.getElementById('rhTel').value.trim(),
+    email:document.getElementById('rhEmail').value.trim(),
+    direccion:document.getElementById('rhDir').value.trim(),
+    curp:document.getElementById('rhCurp').value.trim().toUpperCase(),
+    rfc:document.getElementById('rhRfc').value.trim().toUpperCase(),
+    emergencia:document.getElementById('rhEmergencia').value.trim(),
+    puesto:document.getElementById('rhPuesto').value.trim(),
+    areaId,areaNombre,
+    contrato:document.getElementById('rhContrato').value,
+    ingreso:document.getElementById('rhIngreso').value,
+    sueldo:parseFloat(document.getElementById('rhSueldo').value)||0,
+    sueldoHr:parseFloat(document.getElementById('rhSueldoHr').value)||0,
+    pin,
+    estatus:document.getElementById('rhEstatus').value,
+    horario,
+    notas:document.getElementById('rhNotas').value.trim(),
+    ts:Date.now()
+  };
+  let emps=S.get('rhExpedientes',[]);
+  if(editId){const idx=emps.findIndex(x=>x.id===editId);if(idx>=0)emps[idx]=emp;else emps.push(emp);}
+  else emps.push(emp);
+  // Sincronizar también con el array empleados para que aparezca en Checadas/Nómina
+  let empsCal=S.get('empleados',[]);
+  const idxCal=empsCal.findIndex(x=>x.id===emp.id);
+  const empCal={id:emp.id,nombre:emp.nombre,puesto:emp.puesto,area:emp.areaNombre,tel:emp.tel,pin:emp.pin,sueldoHr:emp.sueldoHr};
+  if(idxCal>=0)empsCal[idxCal]=empCal;else empsCal.push(empCal);
+  S.set('empleados',empsCal);
+  S.set('rhExpedientes',emps);
+  cm('mRhEmp');
+  renderRH();renderCal();
+  logH('👤 Expediente: '+nm+(editId?' actualizado':' creado'));
+  toast('✅ Expediente guardado');
+}
+
+function rhVerFicha(id){
+  const emps=S.get('rhExpedientes',[]);
+  const e=emps.find(x=>x.id===id);
+  if(!e)return;
+  const areas=rhGetAreas();
+  const area=areas.find(a=>a.id===e.areaId)||{};
+  const areaColor=area.color||'var(--gd)';
+  // Asistencia del empleado (desde checadas)
+  const checadas=S.get('checadas',[]).filter(c=>c.empId===id);
+  const hoy=today();
+  const ultimas=checadas.slice(-10).reverse();
+  // Turnos asignados
+  const turnos=S.get('turnos',[]).filter(t=>t.empId===id).slice(-7).reverse();
+  // Incidencias
+  const incidencias=(S.get('rhIncidencias',[])).filter(i=>i.empId===id).slice(-5).reverse();
+  // Calcular edad
+  let edadStr='';
+  if(e.fechaNac){
+    const edad=Math.floor((Date.now()-new Date(e.fechaNac))/(365.25*24*3600*1000));
+    edadStr=` · ${edad} años`;
+  }
+  // Calcular antigüedad
+  let antigStr='';
+  if(e.ingreso){
+    const meses=Math.floor((Date.now()-new Date(e.ingreso))/(30.44*24*3600*1000));
+    antigStr=meses>=12?`${Math.floor(meses/12)} año${Math.floor(meses/12)>1?'s':''}`:`${meses} mes${meses!==1?'es':''}`;
+  }
+  // Horario visual
+  const horario=e.horario||{};
+  const diasTrabaja=RH_DIAS_IDS.filter(d=>horario[d]&&horario[d].activo);
+  const horarioHtml=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">${RH_DIAS_IDS.map((d,i)=>{
+    const activo=horario[d]&&horario[d].activo;
+    const entrada=horario[d]?.entrada||'';
+    const salida=horario[d]?.salida||'';
+    return `<div style="text-align:center;padding:6px 8px;border-radius:8px;background:${activo?areaColor:'var(--bg2)'};opacity:${activo?1:0.4};min-width:44px;">
+      <div style="font-size:9px;font-weight:700;color:${activo?'#fff':'var(--tx3)'}">${RH_DIAS[i]}</div>
+      ${activo&&entrada?`<div style="font-size:8px;color:${activo?'rgba(255,255,255,0.9)':'var(--tx3)'}">${entrada}</div><div style="font-size:8px;color:${activo?'rgba(255,255,255,0.8)':'var(--tx3)'}">${salida}</div>`:''}
+    </div>`;
+  }).join('')}</div>`;
+  // Asistencia reciente html
+  const asistHtml=ultimas.length?ultimas.map(c=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bd);">
+    <span style="font-size:11px;">${c.fecha} ${c.hora}</span>
+    <span style="font-size:10px;padding:2px 8px;border-radius:20px;background:${c.tipo==='entrada'?'var(--gnl)':'var(--rdl)'};color:${c.tipo==='entrada'?'var(--gn)':'var(--rd)'}">${c.tipo==='entrada'?'Entrada':'Salida'}</span>
+  </div>`).join(''):'<div style="color:var(--tx3);font-size:12px;padding:8px 0;">Sin registros de asistencia</div>';
+  // Turnos html
+  const turnosHtml=turnos.length?turnos.map(t=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bd);">
+    <span style="font-size:11px;">${t.fecha}</span>
+    <span style="font-size:11px;color:var(--tx2);">${t.tipo}</span>
+  </div>`).join(''):'<div style="color:var(--tx3);font-size:12px;padding:8px 0;">Sin turnos asignados</div>';
+  // Incidencias html
+  const incHtml=incidencias.length?incidencias.map(inc=>{
+    const icons={falta:'❌',retardo:'⏰',permiso:'📝',vacaciones:'🏖️',incapacidad:'🏥',reconocimiento:'⭐',amonestacion:'⚠️'};
+    return `<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--bd);">
+      <span style="font-size:16px;">${icons[inc.tipo]||'📌'}</span>
+      <div><div style="font-size:11px;font-weight:600;">${inc.tipo.charAt(0).toUpperCase()+inc.tipo.slice(1)} — ${inc.fecha}</div><div style="font-size:10px;color:var(--tx2);">${inc.descripcion||''}</div></div>
+    </div>`;
+  }).join(''):'<div style="color:var(--tx3);font-size:12px;padding:8px 0;">Sin incidencias registradas</div>';
+  const estatusColors={activo:'var(--gn)',baja:'var(--rd)',vacaciones:'var(--bl)',incapacidad:'var(--yl)'};
+  const estatusLabels={activo:'✅ Activo',baja:'❌ De baja',vacaciones:'🏖️ Vacaciones',incapacidad:'🏥 Incapacidad'};
+  document.getElementById('mRhFichaTtl').textContent=e.nombre;
+  document.getElementById('mRhFichaBody').innerHTML=`
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--bd);">
+      <div style="width:56px;height:56px;border-radius:50%;background:${areaColor};display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:#fff;flex-shrink:0;">${inits(e.nombre)}</div>
+      <div style="flex:1;">
+        <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700;">${e.nombre}</div>
+        <div style="font-size:12px;color:var(--tx2);">${e.puesto||'Sin puesto'} — ${area.emoji||''} ${e.areaNombre||'Sin área'}${edadStr}</div>
+        ${antigStr?`<div style="font-size:10px;color:var(--tx3);margin-top:2px;">Antigüedad: ${antigStr} · Ingreso: ${e.ingreso||'—'}</div>`:''}
+      </div>
+      <span style="font-size:11px;padding:4px 10px;border-radius:20px;background:${estatusColors[e.estatus]||'var(--gd)'}22;color:${estatusColors[e.estatus]||'var(--gd)'}">${estatusLabels[e.estatus]||e.estatus}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      ${e.tel?`<div><div style="font-size:9px;color:var(--tx3);">TELÉFONO</div><div style="font-size:12px;">${e.tel}</div></div>`:''}
+      ${e.email?`<div><div style="font-size:9px;color:var(--tx3);">EMAIL</div><div style="font-size:12px;">${e.email}</div></div>`:''}
+      ${e.curp?`<div><div style="font-size:9px;color:var(--tx3);">CURP</div><div style="font-size:11px;font-family:monospace;">${e.curp}</div></div>`:''}
+      ${e.rfc?`<div><div style="font-size:9px;color:var(--tx3);">RFC</div><div style="font-size:11px;font-family:monospace;">${e.rfc}</div></div>`:''}
+      ${e.sueldo?`<div><div style="font-size:9px;color:var(--tx3);">SUELDO BASE</div><div style="font-size:13px;font-weight:700;color:var(--gd);">$${e.sueldo.toLocaleString()}</div></div>`:''}
+      ${e.sueldoHr?`<div><div style="font-size:9px;color:var(--tx3);">SUELDO/HORA</div><div style="font-size:13px;font-weight:700;color:var(--gd);">$${e.sueldoHr}/hr</div></div>`:''}
+      ${e.contrato?`<div><div style="font-size:9px;color:var(--tx3);">CONTRATO</div><div style="font-size:12px;">${e.contrato}</div></div>`:''}
+      ${e.emergencia?`<div><div style="font-size:9px;color:var(--tx3);">EMERGENCIA</div><div style="font-size:12px;">${e.emergencia}</div></div>`:''}
+    </div>
+    <div style="margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:1px;margin-bottom:6px;">HORARIO SEMANAL — ${diasTrabaja.length} días</div>
+      ${horarioHtml}
+    </div>
+    <div class="g2" style="gap:10px;">
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:1px;margin-bottom:6px;">ASISTENCIA RECIENTE</div>
+        ${asistHtml}
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:1px;margin-bottom:6px;">TURNOS ASIGNADOS</div>
+        ${turnosHtml}
+      </div>
+    </div>
+    <div style="margin-top:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div style="font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:1px;">INCIDENCIAS</div>
+        <button class="btn bs xs" onclick="rhAbrirIncidencia('${e.id}')">+ Agregar</button>
+      </div>
+      ${incHtml}
+    </div>
+    ${e.notas?`<div style="margin-top:14px;padding:10px;background:var(--bg2);border-radius:8px;"><div style="font-size:9px;color:var(--tx3);margin-bottom:4px;">NOTAS</div><div style="font-size:12px;color:var(--tx2);">${e.notas}</div></div>`:''}
+  `;
+  document.getElementById('mRhFichaEditBtn').onclick=()=>rhEditarEmp(e.id);
+  om('mRhFicha');
+}
+
+function rhAbrirIncidencia(empId){
+  document.getElementById('rhIncEmpId').value=empId;
+  document.getElementById('rhIncFecha').value=today();
+  document.getElementById('rhIncDesc').value='';
+  document.getElementById('rhIncTipo').value='falta';
+  cm('mRhFicha');
+  om('mRhIncidencia');
+}
+
+function rhGuardarIncidencia(){
+  const empId=document.getElementById('rhIncEmpId').value;
+  const tipo=document.getElementById('rhIncTipo').value;
+  const fecha=document.getElementById('rhIncFecha').value;
+  const desc=document.getElementById('rhIncDesc').value.trim();
+  if(!empId||!fecha){toast('⚠ Datos incompletos');return;}
+  const inc={id:'inc_'+Date.now(),empId,tipo,fecha,descripcion:desc,ts:Date.now()};
+  const arr=S.get('rhIncidencias',[]);arr.push(inc);S.set('rhIncidencias',arr);
+  cm('mRhIncidencia');
+  rhVerFicha(empId);
+  toast('✅ Incidencia registrada');
+}
+
+function renderRH(){
+  const emps=S.get('rhExpedientes',[]);
+  const areas=rhGetAreas();
+  // KPIs
+  const el=k=>document.getElementById(k);
+  if(el('rhTotal'))el('rhTotal').textContent=emps.length;
+  if(el('rhActivos'))el('rhActivos').textContent=emps.filter(e=>e.estatus==='activo').length;
+  if(el('rhBaja'))el('rhBaja').textContent=emps.filter(e=>e.estatus==='baja').length;
+  if(el('rhAreas'))el('rhAreas').textContent=areas.length;
+  // Area tabs
+  const tabs=document.getElementById('rhAreaTabs');
+  if(tabs)tabs.innerHTML=areas.map(a=>`<button class="btn bs sm" style="border-left:3px solid ${a.color};" onclick="rhFiltroArea('${a.id}',this)">${a.emoji} ${a.nombre}</button>`).join('');
+  // Grid
+  const grid=document.getElementById('rhGrid');
+  if(!grid)return;
+  const filtrados=rhFiltroActual==='todos'?emps:emps.filter(e=>e.areaId===rhFiltroActual);
+  if(!filtrados.length){
+    grid.innerHTML='<div class="es" style="grid-column:1/-1;"><div class="ei">👥</div><div class="et">Sin empleados registrados</div><div class="es2">Haz clic en + Empleado para agregar el primer expediente</div></div>';
+    return;
+  }
+  const checadas=S.get('checadas',[]);
+  const hoy=today();
+  grid.innerHTML=filtrados.map(e=>{
+    const area=areas.find(a=>a.id===e.areaId)||{};
+    const areaColor=area.color||'var(--gd)';
+    // Asistencia hoy
+    const checHoy=checadas.filter(c=>c.empId===e.id&&c.fecha===hoy);
+    const estaActivo=checHoy.length&&checHoy[checHoy.length-1].tipo==='entrada';
+    // Horario hoy
+    const diasMap=['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
+    const diaHoy=diasMap[new Date().getDay()];
+    const horHoy=e.horario&&e.horario[diaHoy];
+    const horarioHoyStr=horHoy&&horHoy.activo?`${horHoy.entrada||''}–${horHoy.salida||''}`:'Descanso';
+    // Turnos asignados esta semana
+    const turnosSemana=S.get('turnos',[]).filter(t=>t.empId===e.id).slice(-3);
+    const estatusColors={activo:'var(--gn)',baja:'var(--rd)',vacaciones:'var(--bl)',incapacidad:'var(--yl)'};
+    return `<div class="card" style="cursor:pointer;border-top:3px solid ${areaColor};" onclick="rhVerFicha('${e.id}')">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <div style="width:44px;height:44px;border-radius:50%;background:${areaColor};display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;">${inits(e.nombre)}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.nombre}</div>
+          <div style="font-size:11px;color:var(--tx2);">${e.puesto||'Sin puesto'}</div>
+          <div style="font-size:10px;color:var(--tx3);">${area.emoji||''} ${e.areaNombre||'Sin área'}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+          <span style="font-size:9px;padding:2px 7px;border-radius:20px;background:${estatusColors[e.estatus]||'var(--gd)'}22;color:${estatusColors[e.estatus]||'var(--gd)'}">${e.estatus||'activo'}</span>
+          ${estaActivo?'<span style="font-size:9px;padding:2px 7px;border-radius:20px;background:var(--gnl);color:var(--gn)">● Activo</span>':''}
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx3);padding-top:8px;border-top:1px solid var(--bd);">
+        <span>🕒 Hoy: ${horarioHoyStr}</span>
+        ${e.ingreso?`<span>📅 ${e.ingreso}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// window.addEventListener('DOMContentLoaded') — continúa abajo
 window.addEventListener('DOMContentLoaded',()=>{
   const cfg=S.get('softCfg',{});
   if(cfg.ip){document.getElementById('sIP').value=cfg.ip||'';document.getElementById('sPt').value=cfg.port||'';document.getElementById('sUs').value=cfg.user||'';}
