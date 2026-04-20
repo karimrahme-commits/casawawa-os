@@ -184,6 +184,14 @@
         console.log(`[Sync] 📥 ${key} actualizado por otro dispositivo`);
 
         // Aplicar localmente sin re-enviar al server
+        // PERO: si el remoto trae array vacío y tenemos datos locales, ignorar
+        const remoteIsEmpty = Array.isArray(value) && value.length === 0;
+        const localCurrent = S.get(key, null);
+        const localHasCurrent = Array.isArray(localCurrent) && localCurrent.length > 0;
+        if (remoteIsEmpty && localHasCurrent) {
+          console.log(`[Sync] ⚠️ Ignorando ${key} vacío del remoto (tenemos ${localCurrent.length} items locales)`);
+          return;
+        }
         _isRemoteUpdate = true;
         S.set(key, value);
         _isRemoteUpdate = false;
