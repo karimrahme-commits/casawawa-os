@@ -454,7 +454,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);font-si
 <div class="pg" id="pg-calendario">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
     <div style="display:flex;gap:6px;"><button class="btn bs sm" onclick="nW(-1)">← Anterior</button><button class="btn bs sm" onclick="nW(1)">Siguiente →</button><span id="wkLbl" style="font-size:11px;color:var(--tx3);padding:0 8px;display:flex;align-items:center;"></span></div>
-    <div style="display:flex;gap:6px;"><button class="btn bs sm" onclick="om('mEmp')">+ Empleado</button><button class="btn bg" onclick="om('mTn')">+ Turno</button></div>
+    <div style="display:flex;gap:6px;"><button class="btn bs sm" onclick="om('mEmp')">+ Empleado</button><button class="btn bs sm" onclick="syncAllRHToCalendario()" title="Sincronizar horarios de RH al calendario">🔄 Sync RH</button><button class="btn bg" onclick="om('mTn')">+ Turno</button></div>
   </div>
   <div class="card" style="overflow-x:auto;margin-bottom:11px;"><div id="calG"></div></div>
   <div class="card"><div class="ch"><div><div class="ctt">Empleados Registrados</div></div></div><div id="empL" class="cb"><div class="es"><div class="ei">👤</div><div class="et">Sin empleados</div></div></div></div>
@@ -4348,10 +4348,73 @@ function rhGuardarEmp(){
   if(idxCal>=0)empsCal[idxCal]=empCal;else empsCal.push(empCal);
   S.set('empleados',empsCal);
   S.set('rhExpedientes',emps);
+  // Sincronizar horario RH → Calendario de Turnos
+  syncRHToCalendario(emp);
   cm('mRhEmp');
   renderRH();renderCal();
   logH('👤 Expediente: '+nm+(editId?' actualizado':' creado'));
-  toast('✅ Expediente guardado');
+  toast('✅ Expediente guardado y turnos sincronizados');
+}
+
+// Sincroniza TODOS los empleados RH al Calendario de Turnos
+function syncAllRHToCalendario(){
+  const emps=S.get('rhExpedientes',[]);
+  if(!emps.length){toast('⚠ No hay expedientes en RH');return;}
+  let total=0;
+  emps.forEach(emp=>{
+    if(emp.estatus==='activo'||!emp.estatus){
+      const antes=S.get('turnos',[]).length;
+      syncRHToCalendario(emp);
+      const despues=S.get('turnos',[]).length;
+      total+=despues-antes;
+    }
+  });
+  renderCal();
+  toast('✅ '+total+' turnos sincronizados desde RH ('+emps.length+' empleados)');
+}
+
+// Sincroniza el horario semanal de un empleado RH al Calendario de Turnos (4 semanas)
+function syncRHToCalendario(emp){
+  if(!emp||!emp.horario)return;
+  // Mapeo día RH → índice (0=Lun ... 6=Dom)
+  const diaIdx={Lun:0,Mar:1,Mie:2,Jue:3,Vie:4,Sab:5,Dom:6};
+  // Determinar tipo de turno según hora de entrada
+  function tipoTurno(horaEntrada){
+    if(!horaEntrada)return'Apertura';
+    const h=parseInt(horaEntrada.split(':')[0])||0;
+    if(h<12)return'Apertura';
+    if(h<17)return'Comida';
+    return'Cena';
+  }
+  // Obtener turnos existentes y filtrar los futuros de este empleado (para reemplazarlos)
+  let turnos=S.get('turnos',[]);
+  const hoy=today();
+  // Conservar turnos pasados del empleado y turnos de otros empleados
+  turnos=turnos.filter(t=>!(t.empId===emp.id&&t.fecha>=hoy&&t._rhSync));
+  // Generar turnos para las próximas 4 semanas
+  const nuevos=[];
+  for(let w=0;w<4;w++){
+    for(let d=0;d<7;d++){
+      const dt=new Date();
+      // Calcular el lunes de la semana actual
+      const hoyDt=new Date();
+      const diaSemana=hoyDt.getDay()===0?6:hoyDt.getDay()-1; // 0=Lun
+      dt.setDate(hoyDt.getDate()-diaSemana+d+w*7);
+      const ds=dt.toISOString().split('T')[0];
+      if(ds<hoy)continue;
+      // Buscar si este día de la semana está activo en el horario RH
+      const diaKey=Object.keys(diaIdx).find(k=>diaIdx[k]===d);
+      if(!diaKey)continue;
+      const h=emp.horario[diaKey];
+      if(!h||!h.activo)continue;
+      // Evitar duplicados con turnos manuales existentes
+      const yaExiste=turnos.some(t=>t.empId===emp.id&&t.fecha===ds);
+      if(yaExiste)continue;
+      nuevos.push({id:'trh_'+emp.id+'_'+ds,empId:emp.id,fecha:ds,tipo:tipoTurno(h.entrada),horaEntrada:h.entrada,horaSalida:h.salida,_rhSync:true,ts:Date.now()});
+    }
+  }
+  S.set('turnos',[...turnos,...nuevos]);
+  if(nuevos.length)logH('📅 '+nuevos.length+' turnos sincronizados desde RH → '+emp.nombre);
 }
 
 function rhVerFicha(id){
