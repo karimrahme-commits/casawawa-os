@@ -1782,11 +1782,11 @@ function enterApp(rk){
   CR=rk;
   document.getElementById('ls').style.display='none';
   const app=document.getElementById('app');app.style.display='flex';app.classList.add('on');
-  setupApp();
+  applySysPerms(); // PRIMERO aplicar permisos guardados al objeto ROLES
+  setupApp();      // LUEGO construir el menú con los permisos ya aplicados
   const _role=getEffectiveRole(rk);
   const firstPage=(_role?.nav||['dashboard'])[0];
   nav(firstPage);
-  applySysPerms();
   renderDash();renderCaptura();renderChecklists();renderTareas();renderCal();renderMenu();renderCaja();renderInv();renderCompras();renderCosteo();renderMermas();renderMesas();renderLog();renderAdmin();renderChecadas();renderHACCP();renderNomina();renderRH();initQR();
   logH('🔐 '+(_role?.name||_role?.label||rk)+' inició sesión');
   setInterval(()=>{const el=document.getElementById('clk');if(el)el.textContent=new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);

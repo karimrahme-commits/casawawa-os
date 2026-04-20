@@ -70,7 +70,7 @@
     rhExpedientes:   ["renderRH"],
     rhAreas:         ["renderRH"],
     rhIncidencias:   ["renderRH"],
-    sysRolePerms:    ["renderRolesList", "renderLoginRoles"],
+    sysRolePerms:    ["applySysPerms", "setupApp", "renderRolesList", "renderLoginRoles"],
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -254,6 +254,11 @@
         } else {
           console.log("[Sync] ✅ Full sync: todo al día");
         }
+        // Siempre aplicar permisos de roles al terminar el sync inicial
+        setTimeout(() => {
+          if (typeof window.applySysPerms === 'function') window.applySysPerms();
+          if (typeof window.setupApp === 'function') window.setupApp();
+        }, 200);
       });
 
     } catch (err) {
