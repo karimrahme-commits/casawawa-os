@@ -590,7 +590,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);font-si
         <div class="ch"><div><div class="ctt">🎟️ Control de Entradas</div><div class="cs">Cobro de acceso al área familiar</div></div>
           <div style="display:flex;gap:6px;">
             <button class="btn bs sm" onclick="om('mPrecioEntrada')">⚙ Precios</button>
-            <button class="btn bg" onclick="om('mEntrada')">+ Registrar entrada</button>
+            <button class="btn bg" onclick="om('mEntrada','nino')">+ Registrar entrada</button>
           </div>
         </div>
         <!-- Contadores rápidos -->
@@ -2999,9 +2999,13 @@ function renderCaja(){
   setEl('ctrNinos',totalNinos);setEl('ctrNinosPrecio','$'+precios.nino+' c/u');
   setEl('ctrAdultos',totalAdultos);setEl('ctrAdultosPrecio','$'+precios.adulto+' c/u');
   setEl('totalEntradasMonto','$'+totalEntradas.toLocaleString());
-  // Preload modal precios
-  const pn=document.getElementById('precioNino');const pa=document.getElementById('precioAdulto');
-  if(pn)pn.value=precios.nino;if(pa)pa.value=precios.adulto;
+  // Preload modal precios — solo si el modal NO está abierto (para no interrumpir edición)
+  const mPrecio=document.getElementById('mPrecioEntrada');
+  const mPrecioAbierto=mPrecio&&mPrecio.classList.contains('op');
+  if(!mPrecioAbierto){
+    const pn=document.getElementById('precioNino');const pa=document.getElementById('precioAdulto');
+    if(pn)pn.value=precios.nino;if(pa)pa.value=precios.adulto;
+  }
   // Historial entradas hoy
   renderEntradasHoy(entradas);
   // Cortes historial

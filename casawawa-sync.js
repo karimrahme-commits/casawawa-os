@@ -210,9 +210,21 @@
           const remoteJson = JSON.stringify(value);
 
           // Si el server tiene datos y son diferentes, usar los del server
-          if (value !== null && localJson !== remoteJson) {
+          // PERO: si el server tiene array vacío y el cliente tiene datos, el cliente gana
+          const serverIsEmpty = Array.isArray(value) && value.length === 0;
+          const localHasData = Array.isArray(localValue) && localValue.length > 0;
+          if (value !== null && localJson !== remoteJson && !(serverIsEmpty && localHasData)) {
             S.set(key, value);
             updated++;
+          }
+          // Si el cliente tiene datos y el servidor tiene vacío, subir los datos locales
+          if (serverIsEmpty && localHasData) {
+            socket.emit("data_sync", {
+              key: key,
+              value: localValue,
+              device_id: _deviceId,
+              ts: Date.now(),
+            });
           }
 
           // Si solo existe local, subir al server
