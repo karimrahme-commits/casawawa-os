@@ -992,7 +992,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);font-si
     <div class="card">
       <div class="ch">
         <div><div class="ctt">📊 Reporte de Cierre</div><div class="cs">Genera y envía resumen del turno por Telegram</div></div>
-        <button class="btn bg sm" onclick="generarCierre()">📤 Generar y Enviar</button>
+        <button class="btn bg sm" onclick="generarCierre(this)">📤 Generar y Enviar</button>
       </div>
       <div class="cb" id="cierreResult" style="display:none;"></div>
     </div>
@@ -1820,20 +1820,19 @@ document.addEventListener('keydown', function(e){
 
 function setupApp(){
   const r=getEffectiveRole(CR);if(!r)return;
-  document.getElementById('sbRl').textContent=(r.label||'').toUpperCase();
-  document.getElementById('sbNm').textContent=r.name;
-  document.getElementById('sbLb').textContent=r.label;
-  const av=document.getElementById('sbAv');av.textContent=r.ini;av.style.background=r.color;
-  const nav2=document.getElementById('sbNav');nav2.innerHTML='';
+  const _ss=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  _ss('sbRl',(r.label||'').toUpperCase());_ss('sbNm',r.name);_ss('sbLb',r.label);
+  const av=document.getElementById('sbAv');if(av){av.textContent=r.ini;av.style.background=r.color;}
+  const nav2=document.getElementById('sbNav');if(nav2){nav2.innerHTML='';
   let lastSec='';
   (r.nav||[]).forEach(p=>{
     if(!PMETA[p])return;
     const sec=SECS[p];
     if(sec!==lastSec){nav2.innerHTML+=`<div class="ns">${sec}</div>`;lastSec=sec;}
     nav2.innerHTML+=`<div class="ni" id="ni-${p}" onclick="nav('${p}')"><span class="ic">${PMETA[p].i}</span>${PMETA[p].t}</div>`;
-  });
+  });}
   const h=new Date().getHours();
-  document.getElementById('tTag').textContent=h<12?'🌅 Apertura':h<17?'☀️ Comida':'🌙 Cena';
+  _ss('tTag',h<12?'🌅 Apertura':h<17?'☀️ Comida':'🌙 Cena');
   renderUsersTable();
 }
 function nav(p){
@@ -1870,11 +1869,11 @@ function renderKPIs(){
   if(no!==null&&m.mNo2){sc+=no<+m.mNo2?3:1;cnt++;}
   const hs=cnt>0?Math.min(100,Math.round(sc/cnt/3*100)):0;
   const hr=document.getElementById('hring'),hsel=document.getElementById('hscr');
-  if(total>0){
+  if(total>0&&hr&&hsel){
     hsel.textContent=hs;hr.className='hr '+(hs>=80?'good':hs>=60?'warn':'bad');
     hsel.style.color=hs>=80?'var(--gn)':hs>=60?'var(--yl)':'var(--rd)';
-    document.getElementById('hlbl').textContent=hs>=80?'✅ Buen día':hs>=60?'⚠ Atención':'🔴 Alerta';
-    document.getElementById('hsub').textContent='Score del día';
+    const hlblEl=document.getElementById('hlbl');if(hlblEl)hlblEl.textContent=hs>=80?'✅ Buen día':hs>=60?'⚠ Atención':'🔴 Alerta';
+    const hsubEl=document.getElementById('hsub');if(hsubEl)hsubEl.textContent='Score del día';
   }
   const clItems=S.get('clItems',[]);const clHoy=clItems.filter(x=>x.doneFecha===today());
   const clPct=clItems.length?Math.round(clHoy.length/clItems.length*100):0;
@@ -1888,7 +1887,8 @@ function renderKPIs(){
     {l:'Bajo Stock',v:S.get('inventario',[]).filter(i=>(+i.stock||0)<=(+i.stockMin||0)).length,f:'Artículos',bar:0,bc:'var(--yl)',pg:'inventario'},
     {l:'Tareas Pend.',v:S.get('tareas',[]).filter(t=>t.est==='p').length,f:'Del día',bar:0,bc:'var(--bl)',pg:'tareas'},
   ];
-  document.getElementById('kgrid').innerHTML=kpis.map(k=>`
+  const kgridEl=document.getElementById('kgrid');if(!kgridEl)return;
+  kgridEl.innerHTML=kpis.map(k=>`
     <div class="kpi ${k.hl?'hl':''} ${k.v==='—'?'em':''}" onclick="nav('${k.pg}')">
       <div class="kl">${k.l}</div>
       <div class="kv" style="${k.hl&&k.v!=='—'?'color:var(--gd)':''}">${k.v}</div>
@@ -1906,7 +1906,7 @@ function renderTicker(){
   const lowInv=S.get('inventario',[]).filter(i=>(+i.stock||0)<=(+i.stockMin||0));
   if(lowInv.length)items.push({c:'var(--yl)',t:lowInv.length+' artículos bajo stock'});
   if(!items.length)items.push({c:'var(--tx3)',t:'Sin datos — ingresa ventas del turno'});
-  document.getElementById('tki').innerHTML=items.map(i=>`<div class="tkitem"><div class="tdot" style="background:${i.c}"></div>${i.t}</div>`).join('');
+  const tkiEl=document.getElementById('tki');if(tkiEl)tkiEl.innerHTML=items.map(i=>`<div class="tkitem"><div class="tdot" style="background:${i.c}"></div>${i.t}</div>`).join('');
 }
 function renderAlertas(){
   const a=S.get('alertas',[]).filter(x=>!x.resolved);const c=document.getElementById('alList');if(!c)return;
@@ -2111,9 +2111,8 @@ function renderInv(){
   // stats
   const total=inv.length;const low=inv.filter(i=>(+i.stock||0)<=(+i.stockMin||0)).length;
   const val=inv.reduce((a,i)=>{const v=(+i.stock||0)*(+i.costoU||0);return a+v;},0);
-  document.getElementById('invTotal').textContent=total;
-  document.getElementById('invLow').textContent=low;
-  document.getElementById('invVal').textContent='$'+Math.round(val).toLocaleString();
+  const _si=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  _si('invTotal',total);_si('invLow',low);_si('invVal','$'+Math.round(val).toLocaleString());
   // alerts
   const lowItems=inv.filter(i=>(+i.stock||0)<=(+i.stockMin||0));
   const alc=document.getElementById('invAlerts');
@@ -2156,9 +2155,8 @@ function renderCompras(){
   const ocs=S.get('ordenes',[]);const provs=S.get('proveedores',[]);
   const activas=ocs.filter(o=>o.estado!=='entregada').length;
   const mes=ocs.filter(o=>o.fecha&&o.fecha.slice(0,7)===today().slice(0,7)).reduce((a,o)=>a+(+o.monto||0),0);
-  document.getElementById('compActivas').textContent=activas;
-  document.getElementById('compMes').textContent='$'+Math.round(mes).toLocaleString();
-  document.getElementById('compProvN').textContent=provs.length;
+  const _sc=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  _sc('compActivas',activas);_sc('compMes','$'+Math.round(mes).toLocaleString());_sc('compProvN',provs.length);
   // prov select in OC modal
   const ps=document.getElementById('ocProv');if(ps)ps.innerHTML=provs.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join('')||'<option value="">Sin proveedores</option>';
   // render lists
@@ -2266,8 +2264,8 @@ function renderMermas(){
   const mesData=mermas.filter(m=>m.fecha&&m.fecha.slice(0,7)===mes);
   const total=mesData.reduce((a,m)=>a+(+m.costo||0),0);
   const arts=new Set(mesData.map(m=>m.artNm)).size;
-  document.getElementById('mermaMes').textContent='$'+Math.round(total).toLocaleString();
-  document.getElementById('mermaArt').textContent=arts;
+  const _smr=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  _smr('mermaMes','$'+Math.round(total).toLocaleString());_smr('mermaArt',arts);
   // refresh art select
   const sel=document.getElementById('mermaArtSel');
   const inv=S.get('inventario',[]);
@@ -2292,9 +2290,8 @@ function renderMesas(){
   const libres=mesas.filter(m=>m.estado==='libre').length;
   const ocupadas=mesas.filter(m=>m.estado==='ocupada').length;
   const pct=mesas.length?Math.round(ocupadas/mesas.length*100):0;
-  document.getElementById('mesasL').textContent=libres;
-  document.getElementById('mesasO').textContent=ocupadas;
-  document.getElementById('mesasPct').textContent=pct+'%';
+  const _sm=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  _sm('mesasL',libres);_sm('mesasO',ocupadas);_sm('mesasPct',pct+'%');
   // mapa
   const g=document.getElementById('mesasGrid');if(!g)return;
   if(!mesas.length){g.innerHTML='<div class="es"><div class="ei">🍽️</div><div class="et">Sin mesas</div><div class="es2">Agrega mesas para el mapa</div></div>';return;}
@@ -2305,7 +2302,7 @@ function renderMesas(){
   const rl=document.getElementById('reservList');if(!rl)return;
   const hoyRes=reservas.filter(r=>r.fecha===today()).sort((a,b)=>a.hora>b.hora?1:-1);
   if(!hoyRes.length){rl.innerHTML='<div class="es" style="padding:10px;"><div class="et">Sin reservas hoy</div></div>';return;}
-  rl.innerHTML=hoyRes.map((r,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd);"><div style="flex:1;"><div style="font-size:12px;font-weight:600;">${r.nombre}</div><div style="font-size:10px;color:var(--tx3);">${r.hora} · ${r.pax} personas${r.nota?' · '+r.nota:''}</div></div><span class="tag tgd">${r.hora}</span><button class="btn br xs" onclick="delReserva(${i})">✕</button></div>`).join('');
+  rl.innerHTML=hoyRes.map((r)=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd);"><div style="flex:1;"><div style="font-size:12px;font-weight:600;">${r.nombre}</div><div style="font-size:10px;color:var(--tx3);">${r.hora} · ${r.pax} personas${r.nota?' · '+r.nota:''}</div></div><span class="tag tgd">${r.hora}</span><button class="btn br xs" onclick="delReserva('${r.id}')">✕</button></div>`).join('');
 }
 function toggleMesa(id){const m=S.get('mesas',[]);const mesa=m.find(x=>x.id===id);if(mesa){const estados=['libre','ocupada','reservada'];const i=estados.indexOf(mesa.estado);mesa.estado=estados[(i+1)%3];}S.set('mesas',m);renderMesas();}
 function gMesa(){const m={id:'mesa_'+Date.now(),num:document.getElementById('mesaNum').value,cap:document.getElementById('mesaCap').value,zona:document.getElementById('mesaZona').value,estado:'libre'};if(!m.num){toast('⚠ Ingresa el número');return;}S.push('mesas',m);cm('mMesa');['mesaNum','mesaCap'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});renderMesas();toast('✅ Mesa agregada');}
@@ -2314,7 +2311,7 @@ function gReserva(){
   if(!r.nombre||!r.hora){toast('⚠ Nombre y hora son requeridos');return;}
   S.push('reservas',r);cm('mReserva');logH('🍽️ Reserva: '+r.nombre+' '+r.hora);renderMesas();toast('✅ Reserva creada');['resNm','resPax','resHora','resTel','resNota'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
 }
-function delReserva(i){const r=S.get('reservas',[]);r.splice(i,1);S.set('reservas',r);renderMesas();toast('🗑 Eliminada');}
+function delReserva(id){const r=S.get('reservas',[]).filter(x=>x.id!==id);S.set('reservas',r);renderMesas();toast('🗑 Eliminada');}
 
 // ═══ LOG ═══
 function aLE(){const tipo=document.getElementById('lgT').value,area=document.getElementById('lgA').value,desc=document.getElementById('lgD').value.trim();if(!desc){toast('⚠ Escribe la descripción');return;}addLog(tipo,area,desc);document.getElementById('lgD').value='';document.getElementById('lgFP').innerHTML='';}
@@ -2591,8 +2588,9 @@ async function sendChat(){
   const btn=document.getElementById('btnSend');
   if(btn){btn.textContent='⏳';btn.disabled=true;}
 
-  // Preparar body para el server
-  const body={message:msg||''};
+  // Preparar body para el server — incluir historial para contexto
+  const history=(chatHistory||[]).slice(-10).map(m=>({role:m.role==='user'?'user':'assistant',content:m.text||''}));
+  const body={message:msg||'',messages:history};
 
   // Si hay imagen, enviarla como base64
   if(uploadedFile){
@@ -2754,10 +2752,9 @@ function renderMenu(){
   const totalFC=dishes.filter(d=>d.pv>0&&d.costo>0);
   const avgFC=totalFC.length?+(totalFC.reduce((a,d)=>a+(+d.costo/+d.pv*100),0)/totalFC.length).toFixed(1):null;
   const avgMg=totalFC.length?+(totalFC.reduce((a,d)=>a+(+d.pv-+d.costo),0)/totalFC.length).toFixed(0):null;
-  document.getElementById('mkTotal').textContent=dishes.length;
-  document.getElementById('mkDisp').textContent=active.length;
-  document.getElementById('mkFC').textContent=avgFC!==null?avgFC+'%':'—';
-  document.getElementById('mkMargen').textContent=avgMg!==null?'$'+avgMg:'—';
+  const _smk=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  _smk('mkTotal',dishes.length);_smk('mkDisp',active.length);
+  _smk('mkFC',avgFC!==null?avgFC+'%':'—');_smk('mkMargen',avgMg!==null?'$'+avgMg:'—');
   // Filter dishes
   const filtered=menuCatActive==='todas'?dishes:dishes.filter(d=>d.cat===menuCatActive);
   // Render cards
@@ -3070,7 +3067,7 @@ function registrarEntrada(){
   S.push('entradas',e);
   cm('mEntrada');
   ['entCant','entNombre','entNota'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('entCant').value='1';
+  const entCantEl=document.getElementById('entCant');if(entCantEl)entCantEl.value='1';
   logH('🎟️ Entrada '+(cant)+'x '+(tipo==='nino'?'niño(s)':'adulto(s)')+' $'+(cant*precio));
   renderCaja();renderDash();toast('✅ Entrada registrada');
 }
@@ -3172,7 +3169,7 @@ function calcCorte(){
   const totalEgresos=fondo+gastos;
   const neto=totalIngresos-totalEgresos;
   const fisico=+(document.getElementById('totalFisico')?.textContent.replace('$','').replace(/,/g,'')||0);
-  const diff=fisico-ef+tar+trans; // efectivo físico vs declarado
+  const diff=fisico-(ef+tar+trans); // efectivo físico vs declarado
   const rEl=document.getElementById('corteResumen');
   if(rEl){
     rEl.style.display='block';
@@ -3358,11 +3355,12 @@ function renderNomina(){
   const periodo=document.getElementById('nomPeriodo')?.value||'semanal';
   const hoy=new Date().toISOString().split('T')[0];
   fetch(`/api/nomina?periodo=${periodo}&fecha=${hoy}`).then(r=>r.json()).then(data=>{
-    document.getElementById('nomHoras').textContent=data.totalHoras||0;
-    document.getElementById('nomEmps').textContent=data.empleados?.length||0;
-    document.getElementById('nomDias').textContent=data.dias||0;
-    document.getElementById('nomTotal').textContent='$'+(data.totalSueldo||0).toLocaleString('es-MX');
-    document.getElementById('nomPeriodoLabel').textContent=`Periodo: ${data.inicio} — ${data.fin}`;
+    const _sn=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+    _sn('nomHoras',data.totalHoras||0);
+    _sn('nomEmps',data.empleados?.length||0);
+    _sn('nomDias',data.dias||0);
+    _sn('nomTotal','$'+(data.totalSueldo||0).toLocaleString('es-MX'));
+    _sn('nomPeriodoLabel',`Periodo: ${data.inicio} — ${data.fin}`);
     const c=document.getElementById('nomDetalle');if(!c)return;
     if(!data.empleados||!data.empleados.length){c.innerHTML='<div class="es"><div class="ei">💰</div><div class="et">Sin checadas en este periodo</div></div>';return;}
     let html='<table class="tbl"><thead><tr><th>Empleado</th><th>Días</th><th>Horas</th><th>Extra</th><th>Sueldo</th></tr></thead><tbody>';
@@ -3393,16 +3391,16 @@ function exportNomina(){
   }).catch(()=>toast('⚠ Error al exportar'));
 }
 
-function generarCierre(){
-  const btn=event.target;btn.disabled=true;btn.textContent='⏳ Generando...';
+function generarCierre(btn){
+  if(btn){btn.disabled=true;btn.textContent='⏳ Generando...';}
   fetch('/api/reporte-cierre',{method:'POST'}).then(r=>r.json()).then(data=>{
-    btn.disabled=false;btn.textContent='📤 Generar y Enviar';
+    if(btn){btn.disabled=false;btn.textContent='📤 Generar y Enviar';}
     if(data.ok){
       toast('✅ Reporte de cierre enviado por Telegram');
       const c=document.getElementById('cierreResult');
       if(c){c.style.display='block';c.innerHTML='<pre style="font-size:10px;white-space:pre-wrap;color:var(--tx2);background:var(--bg2);padding:8px;border-radius:6px;">'+data.reporte.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</pre>';}
     }else{toast('⚠ Error al generar reporte');}
-  }).catch(()=>{btn.disabled=false;btn.textContent='📤 Generar y Enviar';toast('⚠ Error de conexión');});
+  }).catch(()=>{if(btn){btn.disabled=false;btn.textContent='📤 Generar y Enviar';}toast('⚠ Error de conexión');});
 }
 
 // ═══ PUESTOS Y PERMISOS (CUSTOM ROLES) ═══
@@ -3723,35 +3721,32 @@ function renderChecadas(){
   hoy.forEach(c=>{if(!byEmp[c.empId])byEmp[c.empId]=c;});
   const activos=Object.values(byEmp).filter(c=>c.tipo==='entrada');
 
-  document.getElementById('chkActivos').textContent=activos.length;
+  const chkAEl=document.getElementById('chkActivos');if(chkAEl)chkAEl.textContent=activos.length;
 
   // Active list
   const al=document.getElementById('chkActivosList');
-  if(activos.length===0){al.innerHTML='<div class="es"><div class="ei">👤</div><div class="et">Nadie ha checado entrada</div></div>';
-  }else{
-    al.innerHTML=activos.map(c=>{
+  if(al){if(activos.length===0){al.innerHTML='<div class="es"><div class="ei">👤</div><div class="et">Nadie ha checado entrada</div></div>';}
+  else{al.innerHTML=activos.map(c=>{
       const entradas=hoy.filter(x=>x.empId===c.empId&&x.tipo==='entrada');
       const horaEntrada=entradas[entradas.length-1]?.hora||'';
       return `<div class="chk-card"><div class="chk-avatar" style="background:${colOf(c.empNombre)};">${inits(c.empNombre)}</div>
         <div class="chk-info"><div class="chk-name">${c.empNombre}</div><div class="chk-time">Entrada: ${horaEntrada}</div></div>
         <span class="chk-badge chk-in">Activo</span></div>`;
-    }).join('');
-  }
+    }).join('');}}
 
   // Today's log
   const rl=document.getElementById('chkRegistroHoy');
-  if(hoy.length===0){rl.innerHTML='<div class="es"><div class="ei">📋</div><div class="et">Sin registros hoy</div></div>';
-  }else{
-    rl.innerHTML=hoy.map(c=>`<div class="chk-card"><div class="chk-avatar" style="background:${colOf(c.empNombre)};width:28px;height:28px;font-size:9px;">${inits(c.empNombre)}</div>
+  if(rl){if(hoy.length===0){rl.innerHTML='<div class="es"><div class="ei">📋</div><div class="et">Sin registros hoy</div></div>';}
+  else{rl.innerHTML=hoy.map(c=>`<div class="chk-card"><div class="chk-avatar" style="background:${colOf(c.empNombre)};width:28px;height:28px;font-size:9px;">${inits(c.empNombre)}</div>
       <div class="chk-info"><div class="chk-name">${c.empNombre}</div><div class="chk-time">${c.hora}</div></div>
-      <span class="chk-badge ${c.tipo==='entrada'?'chk-in':'chk-out'}">${c.tipo==='entrada'?'Entrada':'Salida'}</span></div>`).join('');
-  }
+      <span class="chk-badge ${c.tipo==='entrada'?'chk-in':'chk-out'}">${c.tipo==='entrada'?'Entrada':'Salida'}</span></div>`).join('');}}
 
   // Hours per employee
   const he=document.getElementById('chkHorasEmpleado');
   const empIds=[...new Set(hoy.map(c=>c.empId))];
   let totalMins=0;
-  if(empIds.length===0){he.innerHTML='<div class="es"><div class="ei">⏱️</div><div class="et">Sin datos</div></div>';
+  if(!he){}
+  else if(empIds.length===0){he.innerHTML='<div class="es"><div class="ei">⏱️</div><div class="et">Sin datos</div></div>';
   }else{
     he.innerHTML=empIds.map(eid=>{
       const recs=hoy.filter(c=>c.empId===eid).reverse(); // oldest first
@@ -3778,7 +3773,7 @@ function renderChecadas(){
     }).join('');
   }
   const totalH=Math.floor(totalMins/60);
-  document.getElementById('chkHorasHoy').textContent=totalH+'h';
+  const chkHEl=document.getElementById('chkHorasHoy');if(chkHEl)chkHEl.textContent=totalH+'h';
 }
 
 function exportChecadas(){
@@ -3803,20 +3798,21 @@ function renderHACCP(){
   const registros=S.get('registrosTemp',[]);
   const hoy=registros.filter(r=>r.fecha===today());
 
-  document.getElementById('hcEquipos').textContent=equipos.length;
+  const hcEqEl=document.getElementById('hcEquipos');if(hcEqEl)hcEqEl.textContent=equipos.length;
 
   // Compliance
   const equiposConRegistro=new Set(hoy.map(r=>r.equipoId));
   const cumpl=equipos.length?Math.round(equiposConRegistro.size/equipos.length*100):0;
   const cel=document.getElementById('hcCumpl');
-  cel.textContent=cumpl+'%';cel.style.color=cumpl>=80?'var(--gn)':cumpl>=50?'var(--yl)':'var(--rd)';
+  if(cel){cel.textContent=cumpl+'%';cel.style.color=cumpl>=80?'var(--gn)':cumpl>=50?'var(--yl)':'var(--rd)';}
 
   // Alerts
   const fueraRango=hoy.filter(r=>!r.enRango);
-  document.getElementById('hcAlertas').textContent=fueraRango.length;
+  const hcAlEl=document.getElementById('hcAlertas');if(hcAlEl)hcAlEl.textContent=fueraRango.length;
 
   // Equipment grid
   const grid=document.getElementById('hcEquiposGrid');
+  if(!grid)return;
   grid.innerHTML=equipos.map(eq=>{
     const lastReg=hoy.find(r=>r.equipoId===eq.id);
     const icon=EQUIPO_ICONS[eq.tipo]||'🌡️';
@@ -3836,30 +3832,26 @@ function renderHACCP(){
 
   // Today's records
   const rl=document.getElementById('hcRegistrosHoy');
-  if(hoy.length===0){rl.innerHTML='<div class="es"><div class="ei">🌡️</div><div class="et">Sin registros hoy</div></div>';
-  }else{
-    rl.innerHTML=hoy.map(r=>`<div class="temp-row">
+  if(rl){if(hoy.length===0){rl.innerHTML='<div class="es"><div class="ei">🌡️</div><div class="et">Sin registros hoy</div></div>';}
+  else{rl.innerHTML=hoy.map(r=>`<div class="temp-row">
       <div class="temp-dot" style="background:${r.enRango?'var(--gn)':'var(--rd)'}"></div>
       <div style="flex:1;"><strong>${r.equipoNombre}</strong></div>
-      <div style="font-family:Syne,sans-serif;font-weight:700;color:${r.enRango?'var(--gn)':'var(--rd)'};">${r.temp}°C</div>
+      <div style="font-family:Syne,sans-serif;font-weight:700;color:${r.enRango?'var(--gn)':'var(--rd)'};">  ${r.temp}°C</div>
       <div style="color:var(--tx3);font-size:10px;min-width:45px;text-align:right;">${r.hora}</div>
       <div style="color:var(--tx3);font-size:10px;">${r.quien||''}</div>
-    </div>`).join('');
-  }
+    </div>`).join('');}}
 
   // Alerts list
   const al=document.getElementById('hcAlertasList');
-  if(fueraRango.length===0){al.innerHTML='<div class="es"><div class="ei">✅</div><div class="et">Todo en rango</div></div>';
-  }else{
-    al.innerHTML=fueraRango.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd);">
+  if(al){if(fueraRango.length===0){al.innerHTML='<div class="es"><div class="ei">✅</div><div class="et">Todo en rango</div></div>';}
+  else{al.innerHTML=fueraRango.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd);">
       <span style="font-size:16px;">🔴</span>
       <div style="flex:1;"><div style="font-size:12px;font-weight:600;">${r.equipoNombre}: ${r.temp}°C</div>
-      <div style="font-size:10px;color:var(--tx3);">${r.hora} — ${r.nota||'Fuera de rango'}</div></div></div>`).join('');
-  }
+      <div style="font-size:10px;color:var(--tx3);">${r.hora} — ${r.nota||'Fuera de rango'}</div></div></div>`).join('');}}
 
   // Populate modal select
   const sel=document.getElementById('rtEquipo');
-  sel.innerHTML=equipos.map(eq=>`<option value="${eq.id}">${eq.nombre}</option>`).join('');
+  if(sel)sel.innerHTML=equipos.map(eq=>`<option value="${eq.id}">${eq.nombre}</option>`).join('');
 }
 
 function openRegTemp(eqId){

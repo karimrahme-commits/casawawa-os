@@ -177,26 +177,53 @@ def reporte_cierre():
 @app.route("/api/nomina")
 def nomina():
     periodo = request.args.get("periodo", "semanal")
+    fecha_ref = request.args.get("fecha", datetime.now().strftime("%Y-%m-%d"))
     checadas = _store.get("checadas") or []
+    # Combinar empleados legacy + rhExpedientes para obtener sueldoHr
     empleados = _store.get("empleados") or []
+    rh_exps = _store.get("rhExpedientes") or []
     emp_map = {e["id"]: e for e in empleados}
-    emp_horas = {}
-    for c in checadas:
+    # rhExpedientes tiene precedencia para sueldoHr
+    for rh in rh_exps:
+        eid = rh.get("id")
+        if eid:
+            if eid not in emp_map:
+                emp_map[eid] = rh
+            else:
+                # Actualizar sueldoHr desde RH si existe
+                if rh.get("sueldoHr"):
+                    emp_map[eid]["sueldoHr"] = rh["sueldoHr"]
+    # Calcular horas desde pares entrada/salida
+    emp_registros = {}
+    for c in sorted(checadas, key=lambda x: (x.get("fecha",""), x.get("hora",""))):
         eid = c.get("empId")
         if not eid:
             continue
-        if eid not in emp_horas:
-            emp_horas[eid] = {"horas": 0, "dias": set(), "nombre": c.get("empNombre", eid)}
-        emp_horas[eid]["horas"] += float(c.get("horas", 0) or 0)
+        if eid not in emp_registros:
+            emp_registros[eid] = {"registros": [], "dias": set(), "nombre": c.get("empNombre", eid)}
+        emp_registros[eid]["registros"].append(c)
         if c.get("fecha"):
-            emp_horas[eid]["dias"].add(c["fecha"])
+            emp_registros[eid]["dias"].add(c["fecha"])
     result = []
     total_horas = 0
     total_sueldo = 0
-    for eid, data in emp_horas.items():
+    for eid, data in emp_registros.items():
         emp = emp_map.get(eid, {})
         sueldo_hr = float(emp.get("sueldoHr", 0) or 0)
-        horas = round(data["horas"], 1)
+        # Calcular horas desde pares entrada/salida
+        mins = 0
+        recs = data["registros"]
+        for i in range(len(recs) - 1):
+            if recs[i].get("tipo") == "entrada" and recs[i+1].get("tipo") == "salida":
+                try:
+                    h1, m1 = map(int, recs[i]["hora"].split(":"))
+                    h2, m2 = map(int, recs[i+1]["hora"].split(":"))
+                    diff = (h2 * 60 + m2) - (h1 * 60 + m1)
+                    if diff > 0:
+                        mins += diff
+                except Exception:
+                    pass
+        horas = round(mins / 60, 1)
         sueldo = round(horas * sueldo_hr, 2)
         total_horas += horas
         total_sueldo += sueldo
@@ -218,11 +245,14 @@ def nomina():
 @app.route("/api/karim/chat", methods=["POST"])
 def karim_chat():
     body = request.get_json(force=True, silent=True) or {}
-    messages = body.get("messages", [])
+    # Soportar tanto body.message (string) como body.messages (array)
+    user_message = body.get("message", "")
+    history = body.get("messages", [])  # historial previo [{role, content}]
+    image_b64 = body.get("image")  # imagen base64 opcional
+    image_type = body.get("imageType", "image/jpeg")
     api_key = os.environ.get("OPENAI_API_KEY", "")
     if not api_key:
-        return jsonify({"ok": False, "reply": "API key no configurada.",
-                       "content": [{"type": "text", "text": "API key no configurada."}]})
+        return jsonify({"ok": False, "response": "API key no configurada.", "reply": "API key no configurada."})
     try:
         from openai import OpenAI
         client = OpenAI(api_key=api_key)
@@ -230,30 +260,50 @@ def karim_chat():
         inventario = _store.get("inventario") or []
         alertas = _store.get("alertas") or []
         tareas = _store.get("tareas") or []
+        checadas = _store.get("checadas") or []
         hoy = datetime.now().strftime("%Y-%m-%d")
         ventas_hoy = [v for v in ventas if v.get("fecha") == hoy]
-        total_hoy = sum(float(v.get("ventas", 0)) for v in ventas_hoy)
-        low_inv = [i for i in inventario if float(i.get("stock", 0)) <= float(i.get("stockMin", 0))]
+        total_hoy = sum(float(v.get("ventas", 0) or 0) for v in ventas_hoy)
+        low_inv = [i for i in inventario if float(i.get("stock", 0) or 0) <= float(i.get("stockMin", 0) or 0)]
+        activos_hoy = len(set(c.get("empId") for c in checadas if c.get("fecha") == hoy and c.get("tipo") == "entrada"))
         system_msg = (
             f"Eres Super Karim, el asistente IA del restaurante Casa Wawa. "
-            f"Responde siempre en español, de forma directa y práctica.\n\n"
+            f"Responde siempre en español, de forma directa y práctica. "
+            f"Cuando el usuario pida llenar el dashboard, responde con un JSON en bloque de código con clave 'dashboard_data' y los campos: ventas, efectivo, tarjeta, transferencia, comensales, foodCost, nomina, propinas, turno.\n\n"
             f"DATOS HOY ({hoy}):\n"
             f"- Ventas: ${total_hoy:,.0f}\n"
             f"- Artículos bajo stock: {len(low_inv)}\n"
-            f"- Alertas activas: {len(alertas)}\n"
-            f"- Tareas pendientes: {len([t for t in tareas if t.get('estado') != 'listo'])}"
+            f"- Alertas activas: {len([a for a in alertas if not a.get('resolved')])}\n"
+            f"- Tareas pendientes: {len([t for t in tareas if t.get('estado') != 'listo'])}\n"
+            f"- Personal activo: {activos_hoy} personas"
         )
-        all_messages = [{"role": "system", "content": system_msg}] + messages
+        # Construir mensajes: sistema + historial + mensaje actual
+        all_messages = [{"role": "system", "content": system_msg}]
+        # Agregar historial previo (formato [{role, content}])
+        for h in history[-10:]:  # max 10 mensajes de historial
+            if isinstance(h, dict) and h.get("role") and h.get("content"):
+                all_messages.append({"role": h["role"], "content": h["content"]})
+        # Agregar mensaje actual del usuario
+        if user_message or image_b64:
+            if image_b64:
+                # Mensaje con imagen
+                content = []
+                if user_message:
+                    content.append({"type": "text", "text": user_message})
+                content.append({"type": "image_url", "image_url": {"url": f"data:{image_type};base64,{image_b64}"}})
+                all_messages.append({"role": "user", "content": content})
+            else:
+                all_messages.append({"role": "user", "content": user_message})
+        if len(all_messages) <= 1:  # solo system
+            return jsonify({"ok": False, "response": "Mensaje vacío.", "reply": "Mensaje vacío."})
+        model = "gpt-4.1-mini" if not image_b64 else "gpt-4.1-mini"
         response = client.chat.completions.create(
-            model="gpt-4.1-mini", messages=all_messages, max_tokens=500
+            model=model, messages=all_messages, max_tokens=800
         )
         reply = response.choices[0].message.content
-        return jsonify({"ok": True, "reply": reply,
-                       "content": [{"type": "text", "text": reply}]})
+        return jsonify({"ok": True, "response": reply, "reply": reply})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e),
-                       "reply": f"Error: {e}",
-                       "content": [{"type": "text", "text": f"Error: {e}"}]})
+        return jsonify({"ok": False, "error": str(e), "response": f"Error: {e}", "reply": f"Error: {e}"})
 
 @app.route("/api/karim/clear", methods=["POST"])
 def karim_clear():
@@ -264,13 +314,21 @@ def karim_memory():
     if request.method == "GET":
         return jsonify(_store.get("_karim_memory", []))
     elif request.method == "POST":
-        mem = request.get_json(force=True, silent=True) or {}
-        memories = _store.get("_karim_memory", [])
-        memories.append(mem)
-        _store["_karim_memory"] = memories
+        body = request.get_json(force=True, silent=True) or {}
+        action = body.get("action", "add")
+        if action == "clear":
+            _store["_karim_memory"] = []
+        else:  # action == "add"
+            fact = body.get("fact", "")
+            if fact:
+                memories = _store.get("_karim_memory", [])
+                memories.append({"fact": fact, "ts": int(datetime.now().timestamp() * 1000)})
+                _store["_karim_memory"] = memories
+        threading.Thread(target=_save_data, daemon=True).start()
         return jsonify({"ok": True})
-    else:
+    else:  # DELETE
         _store["_karim_memory"] = []
+        threading.Thread(target=_save_data, daemon=True).start()
         return jsonify({"ok": True})
 
 # ─── WebSocket ────────────────────────────────────────────────────────────────
