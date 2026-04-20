@@ -601,7 +601,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);font-si
             <div style="font-size:11px;color:var(--tx3);margin:4px 0 10px;" id="ctrNinosPrecio">$0 c/u</div>
             <div style="display:flex;gap:6px;justify-content:center;">
               <button class="btn br" style="font-size:18px;width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;" onclick="quickEntry('nino',-1)">−</button>
-              <button class="btn bg" style="font-size:18px;width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;" onclick="quickEntry('nino',1)">+</button>
+              <button class="btn bg" style="font-size:18px;width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;" onclick="om('mEntrada','nino')">+</button>
             </div>
           </div>
           <div style="padding:16px;text-align:center;">
@@ -610,7 +610,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);font-si
             <div style="font-size:11px;color:var(--tx3);margin:4px 0 10px;" id="ctrAdultosPrecio">$0 c/u</div>
             <div style="display:flex;gap:6px;justify-content:center;">
               <button class="btn br" style="font-size:18px;width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;" onclick="quickEntry('adulto',-1)">−</button>
-              <button class="btn bg" style="font-size:18px;width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;" onclick="quickEntry('adulto',1)">+</button>
+              <button class="btn bg" style="font-size:18px;width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;" onclick="om('mEntrada','adulto')">+</button>
             </div>
           </div>
         </div>
@@ -1748,7 +1748,7 @@ function today(){return new Date().toISOString().split('T')[0];}
 function fmtT(){return new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});}
 function getMon(d){const dt=new Date(d);const day=dt.getDay(),diff=dt.getDate()-day+(day===0?-6:1);return new Date(dt.setDate(diff));}
 function toast(msg,dur=2800){const t=document.getElementById('toast');t.textContent=msg;t.className='toast sh';clearTimeout(t._to);t._to=setTimeout(()=>t.className='toast',dur);}
-function om(id){document.getElementById(id)?.classList.add('op');if(id==='mCorte')setTimeout(autoFillCorteEntradas,100);if(id==='mEntrada')setTimeout(updateEntradaPrecio,50);}
+function om(id,tipo){document.getElementById(id)?.classList.add('op');if(id==='mCorte')setTimeout(autoFillCorteEntradas,100);if(id==='mEntrada'){const sel=document.getElementById('entTipo');if(sel)sel.value=tipo||'nino';const cantEl=document.getElementById('entCant');if(cantEl)cantEl.value='1';const nomEl=document.getElementById('entNombre');if(nomEl)nomEl.value='';const notaEl=document.getElementById('entNota');if(notaEl)notaEl.value='';setTimeout(updateEntradaPrecio,50);}}
 function cm(id){document.getElementById(id)?.classList.remove('op');}
 function pF(inp,prevId){const file=inp.files[0];if(!file)return;const r=new FileReader();r.onload=e=>{const pr=document.getElementById(prevId);if(pr)pr.innerHTML=`<img src="${e.target.result}" style="max-width:100%;max-height:110px;border-radius:6px;border:1px solid var(--bd2);">`};r.readAsDataURL(file);}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo.op').forEach(m=>m.classList.remove('op'));});
