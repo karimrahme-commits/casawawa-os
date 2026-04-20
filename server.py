@@ -80,6 +80,10 @@ def bridge():
 def sync_js():
     return send_from_directory(BASE_DIR, "casawawa-sync.js")
 
+@app.route("/service-worker.js")
+def serve_sw():
+    return send_from_directory(BASE_DIR, "service-worker.js")
+
 @app.route("/manifest.json")
 def manifest():
     return send_from_directory(BASE_DIR, "manifest.json")
