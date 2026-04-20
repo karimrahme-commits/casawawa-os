@@ -4,16 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Casa Wawa OS</title>
-<!-- Limpieza inmediata de Service Workers viejos -->
+<!-- Limpieza de Service Workers -->
 <script>
 (function(){
   if('serviceWorker' in navigator){
+    // Desregistrar todos los SW y limpiar caché
     navigator.serviceWorker.getRegistrations().then(function(regs){
       regs.forEach(function(r){ r.unregister(); });
     });
-    caches.keys().then(function(keys){
-      keys.forEach(function(k){ caches.delete(k); });
-    });
+    if(window.caches){
+      caches.keys().then(function(keys){
+        keys.forEach(function(k){ caches.delete(k); });
+      });
+    }
   }
 })();
 </script>
@@ -4884,27 +4887,9 @@ window.addEventListener('DOMContentLoaded',()=>{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js" defer></script>
 <script src="casawawa-sync.js" defer></script>
 
-<!-- PWA: Service Worker + Install Prompt -->
+<!-- PWA: Install Prompt (sin Service Worker) -->
 <script>
-// ─── Registro del Service Worker ────────────────────────────────────────────
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    // Primero desregistrar cualquier SW viejo para evitar caché bloqueante
-    navigator.serviceWorker.getRegistrations().then(regs => {
-      const unregPromises = regs.map(r => r.unregister());
-      return Promise.all(unregPromises);
-    }).then(() => {
-      // Limpiar todos los cachés viejos
-      return caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))));
-    }).then(() => {
-      // Registrar el nuevo Service Worker
-      return navigator.serviceWorker.register('/service-worker.js');
-    }).then(reg => {
-      console.log('[PWA] Service Worker registrado:', reg.scope);
-      setInterval(() => reg.update(), 60 * 60 * 1000);
-    }).catch(err => console.warn('[PWA] Error al registrar SW:', err));
-  });
-}
+// Service Worker deshabilitado para evitar problemas de caché
 
 // ─── Prompt de instalación personalizado ────────────────────────────────────
 let deferredPrompt = null;
