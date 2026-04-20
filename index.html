@@ -1071,6 +1071,46 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);font-si
   <div id="rhGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;"></div>
 </div>
 
+<!-- ===== UNIFORMES ===== -->
+<div class="pg" id="pg-uniformes">
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <button class="btn bs sm" id="unifBtnTodos" onclick="unifFiltro('todos',this)" style="border-left:3px solid var(--gd);">Todos</button>
+      <div id="unifAreaTabs" style="display:flex;gap:4px;flex-wrap:wrap;"></div>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <button class="btn bs sm" onclick="unifExportCSV()">📥 Exportar CSV</button>
+      <button class="btn bs sm" onclick="unifSincRH()">🔄 Sincronizar RH</button>
+    </div>
+  </div>
+  <!-- KPIs -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;">
+    <div class="kpi"><div class="kl">Total Personal</div><div class="kv" id="unifTotal" style="color:var(--gd)">0</div><div class="kf">Con expediente</div></div>
+    <div class="kpi"><div class="kl">Con Talla</div><div class="kv" id="unifConTalla" style="color:var(--gn)">0</div><div class="kf">Registradas</div></div>
+    <div class="kpi"><div class="kl">Sin Talla</div><div class="kv" id="unifSinTalla" style="color:var(--yl)">0</div><div class="kf">Pendientes</div></div>
+    <div class="kpi"><div class="kl">Piezas Entregadas</div><div class="kv" id="unifPiezas" style="color:var(--bl)">0</div><div class="kf">Total dotación</div></div>
+  </div>
+  <!-- Tabla -->
+  <div class="card">
+    <div class="ch">
+      <div><div class="ctt">👕 Dotación de Uniformes</div><div class="cs">Tallas y prendas por empleado · Vinculado con RH</div></div>
+      <div style="display:flex;gap:6px;">
+        <input class="fi" id="unifSearch" placeholder="🔍 Buscar empleado..." style="width:180px;font-size:12px;" oninput="renderUniformes()">
+      </div>
+    </div>
+    <div class="cb" style="overflow-x:auto;">
+      <table class="tbl" id="unifTabla">
+        <thead><tr>
+          <th>Empleado</th><th>Puesto</th><th>Área</th>
+          <th>Camisa</th><th>Pantalón</th><th>Zapatos</th><th>Gorra</th><th>Piezas</th><th>Notas</th><th></th>
+        </tr></thead>
+        <tbody id="unifBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- ===== ADMIN ===== -->
 <div class="pg" id="pg-admin">
   <div class="g2">
@@ -1107,6 +1147,49 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);font-si
   </div><!-- /ct -->
 </div><!-- /mn -->
 </div><!-- /app -->
+<!-- MODAL: EDITAR UNIFORME -->
+<div class="mo" id="mUnif"><div class="mw">
+  <div class="mt">👕 Uniforme del Empleado</div>
+  <div class="mst" id="mUnifNombre"></div>
+  <input type="hidden" id="mUnifId">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+    <div class="fg"><label class="fl">Talla Camisa</label>
+      <select class="fi" id="uCamisa">
+        <option value="">-- Sin registrar --</option>
+        <option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Talla Pantalón</label>
+      <select class="fi" id="uPantalon">
+        <option value="">-- Sin registrar --</option>
+        <option>28</option><option>30</option><option>32</option><option>34</option><option>36</option><option>38</option><option>40</option><option>42</option><option>44</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Talla Zapatos</label>
+      <select class="fi" id="uZapatos">
+        <option value="">-- Sin registrar --</option>
+        <option>22</option><option>23</option><option>24</option><option>25</option><option>26</option><option>27</option><option>28</option><option>29</option><option>30</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Talla Gorra</label>
+      <select class="fi" id="uGorra">
+        <option value="">-- Sin registrar --</option>
+        <option>Chica</option><option>Mediana</option><option>Grande</option><option>Ajustable</option>
+      </select>
+    </div>
+  </div>
+  <div class="fg"><label class="fl">Piezas entregadas</label>
+    <input class="fi" type="number" id="uPiezas" placeholder="0" min="0">
+  </div>
+  <div class="fg"><label class="fl">Notas</label>
+    <textarea class="fi fta" id="uNotas" placeholder="Ej: Prefiere camisa manga larga, zapato negro..."></textarea>
+  </div>
+  <div class="mf">
+    <button class="btn bs" onclick="cm('mUnif')">Cancelar</button>
+    <button class="btn bg" onclick="unifGuardar()">Guardar</button>
+  </div>
+</div></div>
+
 <!-- MODALES -->
 <div class="mo" id="mV"><div class="mw"><div class="mt">Ingresar Ventas</div><div class="mst">Datos del turno</div>
   <div class="fr"><div class="fg"><label class="fl">Fecha</label><input class="fi" type="date" id="vF"></div><div class="fg"><label class="fl">Turno</label><select class="fi" id="vT"><option>Apertura</option><option>Comida</option><option>Cena</option></select></div></div>
@@ -1603,11 +1686,11 @@ const S={
 // ═══ ROLES & CONFIG ═══
 const ROLES={
   director:{name:'Director General',label:'Director',ini:'DR',color:'#d4a840',pin:'1234',
-    nav:['dashboard','captura','checklists','tareas','calendario','eventos','checadas','menu','caja','inventario','compras','costeo','mermas','mesas','haccp','nomina','rh','log','ia','integracion','admin']},
+    nav:['dashboard','captura','checklists','tareas','calendario','eventos','checadas','menu','caja','inventario','compras','costeo','mermas','mesas','haccp','nomina','rh','uniformes','log','ia','integracion','admin']},
   gerente:{name:'Gerente de Turno',label:'Gerente',ini:'GT',color:'#3dba74',pin:'2222',
     nav:['dashboard','captura','checklists','tareas','checadas','menu','caja','haccp','log','ia','mesas','eventos']},
   admin:{name:'Administrador',label:'Admin',ini:'AD',color:'#4a8ce0',pin:'3333',
-    nav:['dashboard','captura','caja','checadas','inventario','compras','costeo','mermas','haccp','nomina','rh','integracion','admin']},
+    nav:['dashboard','captura','caja','checadas','inventario','compras','costeo','mermas','haccp','nomina','rh','uniformes','integracion','admin']},
   infantil:{name:'Sup. Infantil',label:'Wawa Zone',ini:'SI',color:'#e0a832',pin:'4444',
     nav:['checklists','tareas','checadas','log']}
 };
@@ -1632,9 +1715,10 @@ const PMETA={
   checadas:{t:'Asistencia',s:'Entrada y salida del personal',i:'⏰'},
   haccp:{t:'HACCP Temperaturas',s:'Control de inocuidad',i:'🌡️'},
   nomina:{t:'Nómina',s:'Horas y sueldos del personal',i:'💰'},
-  rh:{t:'Recursos Humanos',s:'Expedientes del personal',i:'👥'}
+  rh:{t:'Recursos Humanos',s:'Expedientes del personal',i:'👥'},
+  uniformes:{t:'Uniformes',s:'Tallas y dotación del personal',i:'👕'}
 };
-const SECS={dashboard:'Principal',captura:'Operación',checklists:'Operación',tareas:'Operación',calendario:'Operación',eventos:'Operación',checadas:'Operación',mesas:'Operación',inventario:'Finanzas',compras:'Finanzas',costeo:'Finanzas',mermas:'Finanzas',menu:'Operación',caja:'Operación',haccp:'Operación',nomina:'Finanzas',rh:'Personal',log:'Reportes',ia:'Reportes',integracion:'Sistema',admin:'Sistema'};
+const SECS={dashboard:'Principal',captura:'Operación',checklists:'Operación',tareas:'Operación',calendario:'Operación',eventos:'Operación',checadas:'Operación',mesas:'Operación',inventario:'Finanzas',compras:'Finanzas',costeo:'Finanzas',mermas:'Finanzas',menu:'Operación',caja:'Operación',haccp:'Operación',nomina:'Finanzas',rh:'Personal',uniformes:'Personal',log:'Reportes',ia:'Reportes',integracion:'Sistema',admin:'Sistema'};
 
 // Default checklist items por turno
 // Turnos: Apertura 8am-3pm | Tarde 3pm-8pm | Cierre 8pm+
@@ -1787,7 +1871,7 @@ function enterApp(rk){
   const _role=getEffectiveRole(rk);
   const firstPage=(_role?.nav||['dashboard'])[0];
   nav(firstPage);
-  renderDash();renderCaptura();renderChecklists();renderTareas();renderCal();renderMenu();renderCaja();renderInv();renderCompras();renderCosteo();renderMermas();renderMesas();renderLog();renderAdmin();renderChecadas();renderHACCP();renderNomina();renderRH();initQR();
+  renderDash();renderCaptura();renderChecklists();renderTareas();renderCal();renderMenu();renderCaja();renderInv();renderCompras();renderCosteo();renderMermas();renderMesas();renderLog();renderAdmin();renderChecadas();renderHACCP();renderNomina();renderRH();renderUniformes();initQR();
   logH('🔐 '+(_role?.name||_role?.label||rk)+' inició sesión');
   setInterval(()=>{const el=document.getElementById('clk');if(el)el.textContent=new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
   ['vF','cFe','mF','cF','tnF','mermaFecha','resFecha','ocFecha'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.value)el.value=today();});
@@ -1839,6 +1923,7 @@ function nav(p){
   const _nr=getEffectiveRole(CR);if(_nr&&!(_nr.nav||[]).includes(p))return;
   if(p==='eventos'){setTimeout(()=>renderEventos(),50);}
   if(p==='rh'){setTimeout(()=>renderRH(),50);}
+  if(p==='uniformes'){setTimeout(()=>renderUniformes(),50);}
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('ac'));
   document.querySelectorAll('.pg').forEach(g=>g.classList.remove('ac'));
   document.getElementById('ni-'+p)?.classList.add('ac');
@@ -3327,7 +3412,7 @@ function renderHistorial(){
   c.innerHTML=h.slice(0,40).map(x=>`<div style="display:flex;gap:7px;padding:6px 0;border-bottom:1px solid var(--bd);"><div style="flex:1;font-size:11.5px;color:var(--tx2);">${x.msg}</div><div style="font-size:10px;color:var(--tx3);white-space:nowrap;">${x.fecha} ${x.time}</div></div>`).join('');
 }
 function expD(){
-  const keys=['ventas','costos','alertas','tareas','empleados','turnos','logE','metas','users','reportes','historial','pendientes','clItems','inventario','invCats','ordenes','proveedores','recetas','mermas','mesas','reservas'];
+  const keys=['ventas','costos','alertas','tareas','empleados','turnos','logE','metas','users','reportes','historial','pendientes','clItems','inventario','invCats','ordenes','proveedores','recetas','mermas','mesas','reservas','rhExpedientes','uniformes'];
   const data={};keys.forEach(k=>data[k]=S.get(k,[]));data.exportedAt=new Date().toISOString();
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='casawawa_backup_'+today()+'.json';a.click();
@@ -3339,15 +3424,15 @@ function impD(inp){
     try{const d=JSON.parse(e.target.result);
       Object.keys(d).forEach(k=>{if(k!=='exportedAt')S.set(k,d[k]);});
       logH('📂 Backup importado');
-      renderDash();renderCaptura();renderChecklists();renderTareas();renderCal();renderMenu();renderCaja();renderInv();renderCompras();renderCosteo();renderMermas();renderMesas();renderLog();renderAdmin();initChart();
+      renderDash();renderCaptura();renderChecklists();renderTareas();renderCal();renderMenu();renderCaja();renderInv();renderCompras();renderCosteo();renderMermas();renderMesas();renderLog();renderAdmin();renderRH();renderUniformes();initChart();
       toast('✅ Datos importados');
     }catch{toast('❌ Error al leer archivo');}
   };r.readAsText(file);
 }
 function resetD(){
   if(!confirm('¿Eliminar TODOS los datos? No hay vuelta atrás.'))return;
-  ['ventas','costos','alertas','tareas','empleados','turnos','logE','metas','users','reportes','historial','pendientes','clItems','inventario','invCats','ordenes','proveedores','recetas','mermas','mesas','reservas','checadas','equiposTemp','registrosTemp'].forEach(k=>localStorage.removeItem('cw_'+k));
-  renderDash();renderCaptura();renderChecklists();renderTareas();renderCal();renderMenu();renderCaja();renderInv();renderCompras();renderCosteo();renderMermas();renderMesas();renderLog();renderAdmin();renderChecadas();renderHACCP();initChart();toast('🗑 Datos eliminados');
+  ['ventas','costos','alertas','tareas','empleados','turnos','logE','metas','users','reportes','historial','pendientes','clItems','inventario','invCats','ordenes','proveedores','recetas','mermas','mesas','reservas','checadas','equiposTemp','registrosTemp','rhExpedientes','uniformes'].forEach(k=>localStorage.removeItem('cw_'+k));
+  renderDash();renderCaptura();renderChecklists();renderTareas();renderCal();renderMenu();renderCaja();renderInv();renderCompras();renderCosteo();renderMermas();renderMesas();renderLog();renderAdmin();renderChecadas();renderHACCP();renderRH();renderUniformes();initChart();toast('🗑 Datos eliminados');
 }
 
 // ═══ NÓMINA ═══
@@ -4595,6 +4680,146 @@ function renderRH(){
   }).join('');
 }
 
+// ═══════════════════════════════════════════════════════════
+// ═══ UNIFORMES ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+let _unifFiltro='todos';
+
+function unifFiltro(areaId,btn){
+  _unifFiltro=areaId;
+  // Resaltar botón activo
+  document.querySelectorAll('#pg-uniformes .btn').forEach(b=>b.classList.remove('bg'));
+  if(btn)btn.classList.add('bg');
+  renderUniformes();
+}
+
+function renderUniformes(){
+  const emps=S.get('rhExpedientes',[]);
+  const uniforms=S.get('uniformes',{});
+  const search=(document.getElementById('unifSearch')?.value||'').toLowerCase();
+  // KPIs
+  const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  const conTalla=emps.filter(e=>{
+    const u=uniforms[e.id]||{};
+    return u.camisa||u.pantalon||u.zapatos;
+  }).length;
+  const totalPiezas=emps.reduce((a,e)=>{
+    const u=uniforms[e.id]||{};
+    return a+(+u.piezas||0);
+  },0);
+  setEl('unifTotal',emps.length);
+  setEl('unifConTalla',conTalla);
+  setEl('unifSinTalla',emps.length-conTalla);
+  setEl('unifPiezas',totalPiezas);
+  // Tabs de área
+  const areas=rhGetAreas();
+  const tabs=document.getElementById('unifAreaTabs');
+  if(tabs)tabs.innerHTML=areas.map(a=>`<button class="btn bs sm" style="border-left:3px solid ${a.color};" onclick="unifFiltro('${a.id}',this)">${a.emoji} ${a.nombre}</button>`).join('');
+  // Filtrar
+  let filtrados=_unifFiltro==='todos'?emps:emps.filter(e=>e.areaId===_unifFiltro);
+  if(search)filtrados=filtrados.filter(e=>(e.nombre||'').toLowerCase().includes(search)||(e.puesto||'').toLowerCase().includes(search));
+  const tbody=document.getElementById('unifBody');
+  if(!tbody)return;
+  if(!emps.length){
+    tbody.innerHTML=`<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--tx3);"><div style="font-size:28px;margin-bottom:8px">👥</div>Sin empleados en RH. Agrega expedientes en Recursos Humanos primero.</td></tr>`;
+    return;
+  }
+  if(!filtrados.length){
+    tbody.innerHTML=`<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--tx3);">Sin resultados para la búsqueda.</td></tr>`;
+    return;
+  }
+  const TALLA_COLORS={XS:'var(--bl)',S:'var(--bl)',M:'var(--gn)',L:'var(--gn)',XL:'var(--yl)',XXL:'var(--yl)',XXXL:'var(--rd)'};
+  tbody.innerHTML=filtrados.map(e=>{
+    const u=uniforms[e.id]||{};
+    const area=areas.find(a=>a.id===e.areaId)||{};
+    const badge=(v,colors)=>v?`<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:${(colors&&colors[v])||'var(--gd)'}22;color:${(colors&&colors[v])||'var(--gd)'};font-weight:600;">${v}</span>`:`<span style="font-size:10px;color:var(--tx3);">—</span>`;
+    const hasTalla=u.camisa||u.pantalon||u.zapatos;
+    return `<tr style="${!hasTalla?'opacity:0.65;':''}">` +
+      `<td><strong>${e.nombre}</strong>${e.estatus&&e.estatus!=='activo'?` <span style="font-size:9px;color:var(--rd);">(${e.estatus})</span>`:''}</td>` +
+      `<td style="font-size:11px;color:var(--tx2);">${e.puesto||'—'}</td>` +
+      `<td style="font-size:11px;">${area.emoji||''} ${e.areaNombre||'—'}</td>` +
+      `<td>${badge(u.camisa,TALLA_COLORS)}</td>` +
+      `<td>${badge(u.pantalon,null)}</td>` +
+      `<td>${badge(u.zapatos,null)}</td>` +
+      `<td>${badge(u.gorra,null)}</td>` +
+      `<td style="text-align:center;font-weight:600;color:var(--bl);">${u.piezas||0}</td>` +
+      `<td style="font-size:11px;color:var(--tx3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${u.notas||'—'}</td>` +
+      `<td><button class="btn bs xs" onclick="unifEditar('${e.id}')">✏️ Editar</button></td>` +
+      `</tr>`;
+  }).join('');
+}
+
+function unifEditar(empId){
+  const emps=S.get('rhExpedientes',[]);
+  const emp=emps.find(e=>e.id===empId);
+  if(!emp){toast('⚠ Empleado no encontrado');return;}
+  const uniforms=S.get('uniformes',{});
+  const u=uniforms[empId]||{};
+  document.getElementById('mUnifId').value=empId;
+  document.getElementById('mUnifNombre').textContent=emp.nombre+' · '+(emp.puesto||'');
+  const setVal=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+  setVal('uCamisa',u.camisa);
+  setVal('uPantalon',u.pantalon);
+  setVal('uZapatos',u.zapatos);
+  setVal('uGorra',u.gorra);
+  setVal('uPiezas',u.piezas||0);
+  setVal('uNotas',u.notas);
+  om('mUnif');
+}
+
+function unifGuardar(){
+  const empId=document.getElementById('mUnifId').value;
+  if(!empId)return;
+  const uniforms=S.get('uniformes',{});
+  uniforms[empId]={
+    camisa:document.getElementById('uCamisa').value,
+    pantalon:document.getElementById('uPantalon').value,
+    zapatos:document.getElementById('uZapatos').value,
+    gorra:document.getElementById('uGorra').value,
+    piezas:+(document.getElementById('uPiezas').value||0),
+    notas:document.getElementById('uNotas').value.trim(),
+    ts:Date.now()
+  };
+  S.set('uniformes',uniforms);
+  cm('mUnif');
+  renderUniformes();
+  const emps=S.get('rhExpedientes',[]);
+  const emp=emps.find(e=>e.id===empId);
+  logH('👕 Uniforme actualizado: '+(emp?.nombre||empId));
+  toast('✅ Tallas guardadas');
+}
+
+function unifSincRH(){
+  // Sincroniza: agrega entradas en uniformes para empleados que no tienen registro
+  const emps=S.get('rhExpedientes',[]);
+  const uniforms=S.get('uniformes',{});
+  let nuevos=0;
+  emps.forEach(e=>{
+    if(!uniforms[e.id]){uniforms[e.id]={camisa:'',pantalon:'',zapatos:'',gorra:'',piezas:0,notas:'',ts:Date.now()};nuevos++;}
+  });
+  S.set('uniformes',uniforms);
+  renderUniformes();
+  toast(nuevos>0?`✅ ${nuevos} empleado(s) sincronizados desde RH`:'✓ Ya estaba sincronizado');
+}
+
+function unifExportCSV(){
+  const emps=S.get('rhExpedientes',[]);
+  const uniforms=S.get('uniformes',{});
+  const areas=rhGetAreas();
+  let csv='Nombre,Puesto,Área,Camisa,Pantalón,Zapatos,Gorra,Piezas,Notas\n';
+  emps.forEach(e=>{
+    const u=uniforms[e.id]||{};
+    const area=areas.find(a=>a.id===e.areaId)||{};
+    const esc=v=>`"${(v||'').toString().replace(/"/g,'""')}"`;
+    csv+=`${esc(e.nombre)},${esc(e.puesto)},${esc((area.emoji||'')+' '+(e.areaNombre||''))},${esc(u.camisa)},${esc(u.pantalon)},${esc(u.zapatos)},${esc(u.gorra)},${u.piezas||0},${esc(u.notas)}\n`;
+  });
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='uniformes_'+today()+'.csv';a.click();
+  toast('📥 CSV exportado');
+}
+
+// ═══════════════════════════════════════════════════════════
 // window.addEventListener('DOMContentLoaded') — continúa abajo
 window.addEventListener('DOMContentLoaded',()=>{
   const cfg=S.get('softCfg',{});
