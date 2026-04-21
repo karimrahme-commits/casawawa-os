@@ -362,6 +362,37 @@ def on_full_sync():
     with _lock:
         emit("full_sync_response", {"data": _store, "ok": True})
 
+# ─── Merge inteligente de arrays por ID ──────────────────────────────────────
+def _merge_arrays(existing, incoming):
+    """
+    Fusiona dos arrays de objetos usando el campo 'id' como clave.
+    - Los elementos del incoming que ya existen en existing se actualizan.
+    - Los elementos nuevos en incoming se agregan.
+    - Los elementos que solo existen en existing se conservan (NO se borran).
+    Esto evita que un dispositivo con datos viejos sobreescriba los datos nuevos.
+    """
+    if not isinstance(existing, list) or not isinstance(incoming, list):
+        return incoming
+    # Si los elementos no tienen 'id', reemplazar directamente
+    if not existing or not incoming:
+        return incoming if incoming else existing
+    has_id = all(isinstance(x, dict) and 'id' in x for x in (existing + incoming))
+    if not has_id:
+        # Para arrays sin id (como strings), usar el más largo
+        return incoming if len(incoming) >= len(existing) else existing
+    # Merge por id: existing como base, incoming actualiza/agrega
+    merged = {item['id']: item for item in existing}
+    for item in incoming:
+        merged[item['id']] = item  # incoming tiene precedencia para cada id
+    return list(merged.values())
+
+# Claves que deben hacer merge en lugar de sobreescribir
+MERGE_KEYS = {
+    'rhExpedientes', 'empleados', 'inventario', 'dishes', 'recetas',
+    'menuCats', 'mesas', 'customRoles', 'rhAreas', 'clItems',
+    'ordenes', 'proveedores', 'uniformes'
+}
+
 @socketio.on("data_sync", namespace="/sync")
 def on_data_sync(data):
     key = data.get("key")
@@ -370,6 +401,9 @@ def on_data_sync(data):
     if not key:
         return
     with _lock:
+        # Para claves críticas de catálogos, hacer merge en lugar de sobreescribir
+        if key in MERGE_KEYS and key in _store and isinstance(_store.get(key), list):
+            value = _merge_arrays(_store[key], value)
         _store[key] = value
     threading.Thread(target=_save_data, daemon=True).start()
     socketio.emit("data_update", {

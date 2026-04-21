@@ -18,6 +18,28 @@
   // URL del server (mismo origin cuando se sirve desde el server)
   const SERVER_URL = window.location.origin;
 
+  // Claves que deben hacer merge por ID en lugar de sobreescribir
+  const MERGE_KEYS = new Set([
+    'rhExpedientes', 'empleados', 'inventario', 'dishes', 'recetas',
+    'menuCats', 'mesas', 'customRoles', 'rhAreas', 'clItems',
+    'ordenes', 'proveedores', 'uniformes'
+  ]);
+
+  // Fusiona dos arrays de objetos por campo 'id'
+  function _mergeById(existing, incoming) {
+    if (!Array.isArray(existing) || !Array.isArray(incoming)) return incoming;
+    if (!existing.length) return incoming;
+    if (!incoming.length) return existing;
+    const hasId = (arr) => arr.every(x => x && typeof x === 'object' && 'id' in x);
+    if (!hasId(existing) || !hasId(incoming)) {
+      return incoming.length >= existing.length ? incoming : existing;
+    }
+    const merged = {};
+    existing.forEach(item => { merged[item.id] = item; });
+    incoming.forEach(item => { merged[item.id] = item; }); // incoming actualiza/agrega
+    return Object.values(merged);
+  }
+
   // Keys que se sincronizan
   const SYNC_KEYS = [
     "ventas", "costos", "alertas", "tareas", "clItems", "inventario",
@@ -193,7 +215,12 @@
           return;
         }
         _isRemoteUpdate = true;
-        S.set(key, value);
+        // Para claves críticas de catálogos, hacer merge por ID en lugar de sobreescribir
+        if (MERGE_KEYS.has(key) && Array.isArray(value) && Array.isArray(localCurrent) && localCurrent.length > 0) {
+          S.set(key, _mergeById(localCurrent, value));
+        } else {
+          S.set(key, value);
+        }
         _isRemoteUpdate = false;
 
         // Render con debounce
@@ -222,7 +249,13 @@
           const serverIsEmpty = Array.isArray(value) && value.length === 0;
           const localHasData = Array.isArray(localValue) && localValue.length > 0;
           if (value !== null && localJson !== remoteJson && !(serverIsEmpty && localHasData)) {
-            S.set(key, value);
+            // Para claves críticas de catálogos, hacer merge por ID
+            if (MERGE_KEYS.has(key) && Array.isArray(value) && Array.isArray(localValue)) {
+              const merged = _mergeById(localValue, value);
+              S.set(key, merged);
+            } else {
+              S.set(key, value);
+            }
             updated++;
           }
           // Si el cliente tiene datos y el servidor tiene vacío, subir los datos locales
