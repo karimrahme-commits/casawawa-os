@@ -4699,14 +4699,18 @@ function renderRH(){
 
 function rhEliminarEmp(id){
   if(!confirm('¿Eliminar este empleado? Se borrarán también sus checadas, turnos asignados y registro de uniformes.'))return;
-  // Eliminar expediente
-  let emps=S.get('rhExpedientes',[]);
-  emps=emps.filter(e=>e.id!==id);
-  S.set('rhExpedientes',emps);
-  // Eliminar de empleados (checadas)
-  let empleados=S.get('empleados',[]);
-  empleados=empleados.filter(e=>e.id!==id);
-  S.set('empleados',empleados);
+  // Usar S.deleteById para enviar tombstone al servidor (evita que el merge lo restaure)
+  if(typeof S.deleteById==='function'){
+    S.deleteById('rhExpedientes',id);
+    S.deleteById('empleados',id);
+  } else {
+    let emps=S.get('rhExpedientes',[]);
+    emps=emps.filter(e=>e.id!==id);
+    S.set('rhExpedientes',emps);
+    let empleados=S.get('empleados',[]);
+    empleados=empleados.filter(e=>e.id!==id);
+    S.set('empleados',empleados);
+  }
   // Eliminar checadas del empleado
   let checadas=S.get('checadas',[]);
   checadas=checadas.filter(c=>c.empId!==id);

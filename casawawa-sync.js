@@ -367,6 +367,24 @@
       return result;
     };
 
+
+    // S.deleteById: elimina un elemento por ID y notifica al server con tombstone
+    // Usar esto en lugar de S.set cuando se elimina un elemento de un array
+    S.deleteById = function (k, id) {
+      const arr = S.get(k, []);
+      const filtered = arr.filter(x => x && x.id !== id);
+      _prevSet(k, filtered);
+      if (_isRemoteUpdate) return;
+      if (syncActivo && socket && SYNC_KEYS.includes(k)) {
+        socket.emit("data_sync", {
+          key: k,
+          value: filtered,
+          deleted_ids: [id],
+          device_id: _deviceId,
+          ts: Date.now(),
+        });
+      }
+    };
     console.log("[Sync] S.set y S.push conectados a WebSocket");
   }
 

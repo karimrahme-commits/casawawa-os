@@ -363,27 +363,34 @@ def on_full_sync():
         emit("full_sync_response", {"data": _store, "ok": True})
 
 # ─── Merge inteligente de arrays por ID ──────────────────────────────────────
-def _merge_arrays(existing, incoming):
+def _merge_arrays(existing, incoming, deleted_ids=None):
     """
     Fusiona dos arrays de objetos usando el campo 'id' como clave.
-    - Los elementos del incoming que ya existen en existing se actualizan.
-    - Los elementos nuevos en incoming se agregan.
-    - Los elementos que solo existen en existing se conservan (NO se borran).
-    Esto evita que un dispositivo con datos viejos sobreescriba los datos nuevos.
+    - incoming tiene precedencia (versión más reciente del cliente).
+    - Los elementos que solo están en existing se conservan (otro dispositivo los agregó).
+    - Los IDs en deleted_ids se eliminan de ambos arrays (tombstones).
     """
     if not isinstance(existing, list) or not isinstance(incoming, list):
         return incoming
-    # Si los elementos no tienen 'id', reemplazar directamente
-    if not existing or not incoming:
-        return incoming if incoming else existing
-    has_id = all(isinstance(x, dict) and 'id' in x for x in (existing + incoming))
-    if not has_id:
-        # Para arrays sin id (como strings), usar el más largo
+    if not existing:
+        return incoming
+    if not incoming and not deleted_ids:
+        # Si incoming está vacío y no hay tombstones, el cliente puede estar desactualizado
+        # Solo aceptar si el incoming es más reciente que el existing
+        return existing
+    has_id_existing = all(isinstance(x, dict) and 'id' in x for x in existing)
+    has_id_incoming = all(isinstance(x, dict) and 'id' in x for x in incoming) if incoming else True
+    if not has_id_existing or not has_id_incoming:
+        # Sin IDs: incoming gana si tiene más elementos, sino existing
         return incoming if len(incoming) >= len(existing) else existing
-    # Merge por id: existing como base, incoming actualiza/agrega
+    # Merge: existing como base, incoming actualiza/agrega (incoming tiene precedencia)
     merged = {item['id']: item for item in existing}
     for item in incoming:
-        merged[item['id']] = item  # incoming tiene precedencia para cada id
+        merged[item['id']] = item
+    # Aplicar tombstones: eliminar IDs marcados como borrados
+    if deleted_ids:
+        for did in deleted_ids:
+            merged.pop(did, None)
     return list(merged.values())
 
 # Claves que deben hacer merge en lugar de sobreescribir
@@ -398,12 +405,17 @@ def on_data_sync(data):
     key = data.get("key")
     value = data.get("value")
     device_id = data.get("device_id", request.sid)
+    deleted_ids = data.get("deleted_ids", None)  # tombstones: IDs eliminados explícitamente
     if not key:
         return
     with _lock:
         # Para claves críticas de catálogos, hacer merge en lugar de sobreescribir
         if key in MERGE_KEYS and key in _store and isinstance(_store.get(key), list):
-            value = _merge_arrays(_store[key], value)
+            value = _merge_arrays(_store[key], value, deleted_ids)
+        elif deleted_ids and key in _store and isinstance(_store.get(key), list):
+            # Aunque no sea MERGE_KEY, aplicar tombstones si vienen
+            existing = _store[key]
+            value = [item for item in existing if item.get('id') not in deleted_ids]
         _store[key] = value
     threading.Thread(target=_save_data, daemon=True).start()
     socketio.emit("data_update", {
