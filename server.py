@@ -418,11 +418,15 @@ def on_data_sync(data):
             value = [item for item in existing if item.get('id') not in deleted_ids]
         _store[key] = value
     threading.Thread(target=_save_data, daemon=True).start()
-    socketio.emit("data_update", {
+    broadcast_payload = {
         "key": key, "value": value,
         "source": device_id,
         "ts": int(datetime.now().timestamp() * 1000)
-    }, namespace="/sync", skip_sid=request.sid)
+    }
+    # Propagar tombstones a otros dispositivos para que no restauren elementos eliminados
+    if deleted_ids:
+        broadcast_payload["deleted_ids"] = deleted_ids
+    socketio.emit("data_update", broadcast_payload, namespace="/sync", skip_sid=request.sid)
 
 # ─── Sincronización con Wawa Calendar ────────────────────────────────────
 WAWA_CALENDAR_URL = os.environ.get("WAWA_CALENDAR_URL", "https://wawacalend-sfzuhfo8.manus.space")

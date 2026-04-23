@@ -195,7 +195,7 @@
 
       // Recibir cambio de OTRO dispositivo
       socket.on("data_update", (data) => {
-        const { key, value, source } = data;
+        const { key, value, source, deleted_ids } = data;
 
         // Ignorar nuestros propios cambios
         if (source === _deviceId) return;
@@ -207,16 +207,22 @@
 
         // Aplicar localmente sin re-enviar al server
         // PERO: si el remoto trae array vacío y tenemos datos locales, ignorar
+        // EXCEPTO si hay tombstones (deleted_ids) — en ese caso sí aplicar
         const remoteIsEmpty = Array.isArray(value) && value.length === 0;
         const localCurrent = S.get(key, null);
         const localHasCurrent = Array.isArray(localCurrent) && localCurrent.length > 0;
-        if (remoteIsEmpty && localHasCurrent) {
+        const hasTombstones = deleted_ids && deleted_ids.length > 0;
+        if (remoteIsEmpty && localHasCurrent && !hasTombstones) {
           console.log(`[Sync] ⚠️ Ignorando ${key} vacío del remoto (tenemos ${localCurrent.length} items locales)`);
           return;
         }
         _isRemoteUpdate = true;
-        // Para claves críticas de catálogos, hacer merge por ID en lugar de sobreescribir
-        if (MERGE_KEYS.has(key) && Array.isArray(value) && Array.isArray(localCurrent) && localCurrent.length > 0) {
+        // Si hay tombstones, aplicar directamente el valor del servidor (ya tiene tombstones aplicados)
+        // NO hacer merge porque restauraría los elementos eliminados
+        if (hasTombstones) {
+          S.set(key, value);
+        } else if (MERGE_KEYS.has(key) && Array.isArray(value) && Array.isArray(localCurrent) && localCurrent.length > 0) {
+          // Para claves críticas de catálogos, hacer merge por ID en lugar de sobreescribir
           S.set(key, _mergeById(localCurrent, value));
         } else {
           S.set(key, value);
@@ -249,13 +255,9 @@
           const serverIsEmpty = Array.isArray(value) && value.length === 0;
           const localHasData = Array.isArray(localValue) && localValue.length > 0;
           if (value !== null && localJson !== remoteJson && !(serverIsEmpty && localHasData)) {
-            // Para claves críticas de catálogos, hacer merge por ID
-            if (MERGE_KEYS.has(key) && Array.isArray(value) && Array.isArray(localValue)) {
-              const merged = _mergeById(localValue, value);
-              S.set(key, merged);
-            } else {
-              S.set(key, value);
-            }
+            // Para MERGE_KEYS: el servidor es la fuente de verdad (ya aplicó tombstones)
+            // NO hacer merge porque restauraría elementos eliminados
+            S.set(key, value);
             updated++;
           }
           // Si el cliente tiene datos y el servidor tiene vacío, subir los datos locales
