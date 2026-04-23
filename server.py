@@ -360,7 +360,17 @@ def on_register(data):
 @socketio.on("request_full_sync", namespace="/sync")
 def on_full_sync():
     with _lock:
-        emit("full_sync_response", {"data": _store, "ok": True})
+        # Aplicar tombstones permanentes antes de enviar datos al cliente
+        clean_store = dict(_store)
+        tombstones = _store.get('_tombstones', {})
+        for key, deleted_ids in tombstones.items():
+            if key in clean_store and isinstance(clean_store[key], list) and deleted_ids:
+                deleted_set = set(deleted_ids)
+                clean_store[key] = [
+                    item for item in clean_store[key]
+                    if not (isinstance(item, dict) and item.get('id') in deleted_set)
+                ]
+        emit("full_sync_response", {"data": clean_store, "ok": True})
 
 # ─── Merge inteligente de arrays por ID ──────────────────────────────────────
 def _merge_arrays(existing, incoming, deleted_ids=None):
@@ -393,6 +403,21 @@ def _merge_arrays(existing, incoming, deleted_ids=None):
             merged.pop(did, None)
     return list(merged.values())
 
+def _get_deleted_ids(key):
+    """Obtiene los IDs permanentemente eliminados para una clave."""
+    tombstones = _store.get('_tombstones', {})
+    return set(tombstones.get(key, []))
+
+def _add_deleted_ids(key, ids):
+    """Registra IDs como permanentemente eliminados para una clave."""
+    if not ids:
+        return
+    tombstones = _store.get('_tombstones', {})
+    existing_set = set(tombstones.get(key, []))
+    existing_set.update(ids)
+    tombstones[key] = list(existing_set)
+    _store['_tombstones'] = tombstones
+
 # Claves que deben hacer merge en lugar de sobreescribir
 MERGE_KEYS = {
     'rhExpedientes', 'empleados', 'inventario', 'dishes', 'recetas',
@@ -409,13 +434,18 @@ def on_data_sync(data):
     if not key:
         return
     with _lock:
+        # Registrar tombstones permanentemente antes del merge
+        if deleted_ids:
+            _add_deleted_ids(key, deleted_ids)
+        # Obtener todos los tombstones permanentes para esta clave
+        all_deleted = _get_deleted_ids(key)
         # Para claves críticas de catálogos, hacer merge en lugar de sobreescribir
         if key in MERGE_KEYS and key in _store and isinstance(_store.get(key), list):
-            value = _merge_arrays(_store[key], value, deleted_ids)
-        elif deleted_ids and key in _store and isinstance(_store.get(key), list):
-            # Aunque no sea MERGE_KEY, aplicar tombstones si vienen
+            value = _merge_arrays(_store[key], value, all_deleted if all_deleted else deleted_ids)
+        elif all_deleted and key in _store and isinstance(_store.get(key), list):
+            # Aunque no sea MERGE_KEY, aplicar tombstones permanentes
             existing = _store[key]
-            value = [item for item in existing if item.get('id') not in deleted_ids]
+            value = [item for item in existing if item.get('id') not in all_deleted]
         _store[key] = value
     threading.Thread(target=_save_data, daemon=True).start()
     broadcast_payload = {
