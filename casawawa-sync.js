@@ -212,21 +212,17 @@
         const localCurrent = S.get(key, null);
         const localHasCurrent = Array.isArray(localCurrent) && localCurrent.length > 0;
         const hasTombstones = deleted_ids && deleted_ids.length > 0;
-        if (remoteIsEmpty && localHasCurrent && !hasTombstones) {
+        // Solo ignorar arrays vacíos para claves NO-MERGE
+        // Para MERGE_KEYS, el servidor es la fuente de verdad y nunca se ignora
+        if (remoteIsEmpty && localHasCurrent && !hasTombstones && !MERGE_KEYS.has(key)) {
           console.log(`[Sync] ⚠️ Ignorando ${key} vacío del remoto (tenemos ${localCurrent.length} items locales)`);
           return;
         }
         _isRemoteUpdate = true;
-        // Si hay tombstones, aplicar directamente el valor del servidor (ya tiene tombstones aplicados)
-        // NO hacer merge porque restauraría los elementos eliminados
-        if (hasTombstones) {
-          S.set(key, value);
-        } else if (MERGE_KEYS.has(key) && Array.isArray(value) && Array.isArray(localCurrent) && localCurrent.length > 0) {
-          // Para claves críticas de catálogos, hacer merge por ID en lugar de sobreescribir
-          S.set(key, _mergeById(localCurrent, value));
-        } else {
-          S.set(key, value);
-        }
+        // Para MERGE_KEYS: el servidor es la fuente de verdad ABSOLUTA
+        // Siempre aplicar directamente sin merge local (el servidor ya aplicó tombstones)
+        // El merge local restauraría elementos eliminados
+        S.set(key, value);
         _isRemoteUpdate = false;
 
         // Render con debounce
@@ -250,40 +246,43 @@
           const localJson = JSON.stringify(localValue);
           const remoteJson = JSON.stringify(value);
 
-          // Si el server tiene datos y son diferentes, usar los del server
-          // PERO: si el server tiene array vacío y el cliente tiene datos, el cliente gana
           const serverIsEmpty = Array.isArray(value) && value.length === 0;
           const localHasData = Array.isArray(localValue) && localValue.length > 0;
-          if (value !== null && localJson !== remoteJson && !(serverIsEmpty && localHasData)) {
-            // Para MERGE_KEYS: el servidor es la fuente de verdad (ya aplicó tombstones)
-            // NO hacer merge porque restauraría elementos eliminados
-            S.set(key, value);
-            updated++;
-          }
-          // Si el cliente tiene datos y el servidor tiene vacío, subir los datos locales
-          if (serverIsEmpty && localHasData) {
-            socket.emit("data_sync", {
-              key: key,
-              value: localValue,
-              device_id: _deviceId,
-              ts: Date.now(),
-            });
-          }
 
-          // Si solo existe local, subir al server
-          if (localValue !== null && value === null) {
-            socket.emit("data_sync", {
-              key: key,
-              value: localValue,
-              device_id: _deviceId,
-              ts: Date.now(),
-            });
+          if (MERGE_KEYS.has(key)) {
+            // Para MERGE_KEYS: el servidor es la fuente de verdad ABSOLUTA
+            // Siempre aplicar los datos del servidor (ya tiene tombstones aplicados)
+            // NUNCA subir datos locales — evita restaurar empleados/items eliminados
+            if (value !== null && localJson !== remoteJson) {
+              S.set(key, value);
+              updated++;
+            }
+            // Si el servidor tiene vacío, limpiar local también (respeta eliminaciones)
+            if (serverIsEmpty && localHasData) {
+              S.set(key, []);
+              updated++;
+            }
+          } else {
+            // Para claves no-MERGE: lógica normal
+            if (value !== null && localJson !== remoteJson && !(serverIsEmpty && localHasData)) {
+              S.set(key, value);
+              updated++;
+            }
+            // Si el servidor tiene vacío y el cliente tiene datos, subir los datos locales
+            if (serverIsEmpty && localHasData) {
+              socket.emit("data_sync", { key, value: localValue, device_id: _deviceId, ts: Date.now() });
+            }
+            // Si solo existe local, subir al server
+            if (localValue !== null && value === null) {
+              socket.emit("data_sync", { key, value: localValue, device_id: _deviceId, ts: Date.now() });
+            }
           }
         });
 
-        // Subir keys locales que no existen en el server
+        // Si solo existe local, subir al server (solo para claves NO-MERGE)
+        // Para MERGE_KEYS, el servidor es la fuente de verdad y no se suben datos locales
         SYNC_KEYS.forEach((key) => {
-          if (!(key in serverData)) {
+          if (!(key in serverData) && !MERGE_KEYS.has(key)) {
             const localValue = S.get(key, null);
             if (localValue !== null) {
               socket.emit("data_sync", {
